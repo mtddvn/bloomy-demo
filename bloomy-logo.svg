@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Bloomy logo lockup — typographic wordmark with sprout mark (icon direction D,
+  as defined in Bloomy-brand-system.md section 1: a sprout grown from the
+  wordmark's double-o).
+
+  Wordmark font: "Baloo 2" (Bold, 700) — Google Fonts, SIL Open Font License 1.1.
+  Fallbacks, in order: "Nunito" (ExtraBold), "SF Rounded", "Arial Rounded MT Bold",
+  generic sans-serif. The wordmark below is live text in that stack; for final
+  production artwork, convert the wordmark to outlines in the chosen font and
+  re-check the sprout alignment against the outlined double-o (see brand system
+  section 1, "Sprout alignment rule").
+
+  Colours (identical to Bloomy-brand-system.md and CONTRAST.md):
+    Deep Green (wordmark, stem)  #1C4634
+    Sprout Green (leaves)        #2F7D55
+    Mint solid (variant B ground) #8FD0AE
+
+  Sprout geometry on this file's grid (variant A; variant B is the same
+  geometry translated +230 units in y, on a mint ground):
+    Stem: cubic path M197,108 C197,88 197,72 198,54 — stroke Deep Green,
+          width 7, round line cap, no fill.
+    Left leaf:  M197,66 C168,68 148,52 144,26 C172,26 192,40 197,66 Z (fill Sprout Green)
+    Right leaf: M199,54 C224,50 242,34 244,8  C218,12 202,28 199,54 Z (fill Sprout Green)
+    Stem base (197,108) sits on the midpoint between the two o letterforms
+    of "bloomy" at the reference setting below.
+  Wordmark reference setting: font-size 118, letter-spacing -2, baseline y=170,
+  origin x=24.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 460" width="640" height="460" role="img" aria-label="bloomy — wordmark with sprout">
+  <title>bloomy logo lockup — two variants</title>
+  <desc>Variant A: deep green wordmark with a two-leaf sprout growing from the double-o, on transparency. Variant B: the same lockup on a mint ground.</desc>
+
+  <!-- ============ Variant A — deep green on transparent ============ -->
+  <g id="lockup-on-transparent">
+    <path d="M197,66 C168,68 148,52 144,26 C172,26 192,40 197,66 Z" fill="#2F7D55"/>
+    <path d="M199,54 C224,50 242,34 244,8 C218,12 202,28 199,54 Z" fill="#2F7D55"/>
+    <path d="M197,108 C197,88 197,72 198,54" fill="none" stroke="#1C4634" stroke-width="7" stroke-linecap="round"/>
+    <text x="24" y="170" font-family="'Baloo 2','Nunito','SF Rounded','Arial Rounded MT Bold',sans-serif" font-size="118" font-weight="700" letter-spacing="-2" fill="#1C4634">bloomy</text>
+  </g>
+
+  <!-- ============ Variant B — deep green on mint ============ -->
+  <g id="lockup-on-mint" transform="translate(0,230)">
+    <rect x="0" y="0" width="640" height="230" fill="#8FD0AE"/>
+    <path d="M197,66 C168,68 148,52 144,26 C172,26 192,40 197,66 Z" fill="#2F7D55"/>
+    <path d="M199,54 C224,50 242,34 244,8 C218,12 202,28 199,54 Z" fill="#2F7D55"/>
+    <path d="M197,108 C197,88 197,72 198,54" fill="none" stroke="#1C4634" stroke-width="7" stroke-linecap="round"/>
+    <text x="24" y="170" font-family="'Baloo 2','Nunito','SF Rounded','Arial Rounded MT Bold',sans-serif" font-size="118" font-weight="700" letter-spacing="-2" fill="#1C4634">bloomy</text>
+  </g>
+</svg>

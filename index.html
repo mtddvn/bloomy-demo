@@ -1,0 +1,860 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bloomy — clickable prototype</title>
+<!--
+  Bloomy HTML prototype, Step 4. Standalone, single file.
+  Colours, type, components and demo content follow
+  Bloomy-brand-system.md exactly; contrast pairs are those measured
+  in CONTRAST.md (step 2). No images exist yet: every image slot is an
+  honest labelled placeholder (see IMAGE-PROMPTS.md for file names).
+  The only external assets are Google Fonts (Baloo 2 for the logo,
+  Nunito as its fallback); everything degrades to system fonts offline.
+  Icons are Lucide-style inline SVG only — no emoji as UI icons.
+  State is in-memory only: reloading the page resets the demo.
+  Step 4: the three swap activities are full activities (data-driven
+  detail view), and Growth has a real "This week" empty state that
+  fills when an activity is saved as a memory.
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@700&family=Nunito:wght@800&display=swap" rel="stylesheet">
+<style>
+  /* Brand palette — Bloomy-brand-system.md §3. Every hex in this file
+     is from that palette (light + dark sets and the domain table). */
+  :root{
+    --bg:#FFFBF1; --surface:#FFFFFF; --surface2:#F3EFE3; --border:#DDD8C6;
+    --text:#1C4634; --secondary:#426052; --tertiary:#5A7264;
+    --primary:#1E5A40; --mint:#8FD0AE; --mint-tint:#DDF0E4;
+    --coral:#F08A76; --coral-text:#B84A3A;
+    --sprout:#2F7D55;
+    --btn-bg:#1E5A40; --btn-text:#FFFFFF; --link:#1E5A40;
+    --logo-word:#1C4634; --logo-stem:#1C4634; --logo-leaf:#2F7D55;
+    --page:#F3EFE3; --frame:#1C4634;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#101D17; --surface:#182A21; --surface2:#20362B; --border:#335043;
+      --text:#F4F7F0; --secondary:#C2D4C8; --tertiary:#9DB4A7;
+      --primary:#7CC7A2; --mint-tint:#274435;
+      --coral-text:#F2A090;
+      --sprout:#7CC7A2;
+      --btn-bg:#7CC7A2; --btn-text:#10201A; --link:#8FD3B0;
+      --logo-word:#F4F7F0; --logo-stem:#F4F7F0; --logo-leaf:#7CC7A2;
+      --page:#101D17; --frame:#335043;
+    }
+  }
+  *{box-sizing:border-box}
+  html,body{overflow-x:hidden}
+  body{
+    margin:0; padding:24px 12px 40px; background:var(--page);
+    font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",system-ui,sans-serif;
+    color:var(--text); -webkit-font-smoothing:antialiased;
+  }
+  .hint{width:100%; max-width:390px; margin:0 auto 16px; font-size:14px; color:var(--secondary); line-height:1.5; text-align:center}
+  .hint b{color:var(--text)}
+  /* Phone frame: 390 px where it fits, fluid below. max-width keeps
+     frame + body padding inside the viewport (Dayline fix-round
+     lesson): no horizontal overflow at 430 px or 360 px. */
+  .phone{
+    width:390px; max-width:calc(100vw - 24px); height:844px; margin:0 auto;
+    background:var(--bg); border:10px solid var(--frame); border-radius:48px;
+    box-shadow:0 24px 64px rgba(28,70,52,.25); overflow:hidden;
+    display:flex; flex-direction:column; position:relative;
+  }
+  .notch{width:110px; height:26px; background:var(--frame); border-radius:0 0 18px 18px; margin:0 auto; flex:none}
+  .screen{flex:1; overflow-y:auto; padding:0 16px 16px}
+  .view{display:none}
+  .view.active{display:block}
+  /* Type scale — brand §3. Headings SF Rounded stack, tabular ages. */
+  .rounded{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Rounded","Segoe UI Rounded",system-ui,sans-serif}
+  h1{font-size:28px; font-weight:700; margin:0 0 4px; line-height:1.2}
+  h2{font-size:22px; font-weight:700; margin:0 0 8px; line-height:1.25}
+  h3{font-size:17px; font-weight:600; margin:0 0 8px}
+  .sub{font-size:16px; color:var(--secondary); margin:0 0 24px; line-height:1.5}
+  .section{margin-bottom:24px}
+  .section-head{display:flex; align-items:baseline; gap:12px; margin-bottom:8px}
+  .section-head h3{flex:1; margin:0}
+  .meta{font-size:13px; color:var(--secondary)}
+  .caption{font-size:12px; color:var(--tertiary)}
+  .body-text{font-size:16px; line-height:1.5; margin:0}
+  /* Logo lockup (bloomy-logo.svg, inline). Colours via variables so
+     dark mode uses the documented dark lockup, not an inversion. */
+  .logo-svg{display:block}
+  .logo-word{font-family:"Baloo 2","Nunito","SF Rounded","Arial Rounded MT Bold",sans-serif; font-weight:700; fill:var(--logo-word)}
+  .logo-leaf{fill:var(--logo-leaf)}
+  .logo-stem{stroke:var(--logo-stem)}
+  .spr-leaf{fill:none; stroke:var(--logo-leaf); stroke-width:5; stroke-linejoin:round}
+  .spr-stem{fill:none; stroke:var(--logo-stem); stroke-width:7; stroke-linecap:round}
+  /* Cards: radius 16, 1 pt border, no shadows (brand §3). */
+  .card{
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:16px; padding:14px 16px; margin-bottom:8px;
+  }
+  .card.tint{background:var(--mint-tint)}
+  .card.flat{background:var(--surface2)}
+  /* Buttons: primary min height 48, radius 12 (brand §3). */
+  .btn{
+    display:flex; align-items:center; justify-content:center; gap:8px;
+    width:100%; min-height:48px; border:0; border-radius:12px;
+    background:var(--btn-bg); color:var(--btn-text);
+    font-size:16px; font-weight:600; font-family:inherit; cursor:pointer; padding:10px 14px;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .btn.secondary{background:var(--mint-tint); color:var(--text)}
+  .btn.saved{background:var(--mint-tint); color:var(--text); cursor:default}
+  .btn-row{display:flex; gap:12px}
+  .btn-row .btn{flex:1}
+  .tertiary-row{display:flex; gap:8px; margin-top:4px}
+  .tbtn{
+    flex:1; min-height:44px; border:0; background:none; cursor:pointer;
+    color:var(--link); font-size:16px; font-weight:600; font-family:inherit;
+    display:flex; align-items:center; justify-content:center; gap:6px; padding:8px 4px;
+  }
+  /* Domain chips: tint bg + domain text colour + icon + label.
+     Never colour-only (brand §3 domain table). */
+  .chip{
+    display:inline-flex; align-items:center; gap:5px; border-radius:999px;
+    padding:4px 9px; font-size:13px; font-weight:600; line-height:1.2; white-space:nowrap;
+  }
+  .chip svg{width:14px; height:14px; flex:none}
+  .chip .dot{width:6px; height:6px; border-radius:50%; flex:none}
+  .chip-motor{background:#E0EDE0; color:#2F5D3A} .chip-motor .dot{background:#5E8F6A}
+  .chip-language{background:#E9E5F5; color:#4E417F} .chip-language .dot{background:#8373B0}
+  .chip-play{background:#F7ECD9; color:#7A5514} .chip-play .dot{background:#C98A3A}
+  .chip-social{background:#FBE7E1; color:#98402F} .chip-social .dot{background:#D96C5A}
+  @media (prefers-color-scheme: dark){
+    .chip-motor{background:#21382A; color:#A8CFB0}
+    .chip-language{background:#2C2A44; color:#C4BAEA}
+    .chip-play{background:#3A3220; color:#E4CD96}
+    .chip-social{background:#402A24; color:#F2B2A3}
+  }
+  /* Generic inline icon (Lucide-style stroke icons). */
+  .ic{width:20px; height:20px; flex:none; display:inline-block; vertical-align:middle}
+  .ic.sm{width:16px; height:16px}
+  .ic-done{color:var(--primary)} .ic-now{color:var(--sprout)} .ic-later{color:var(--secondary)}
+  /* Image placeholder: mint-tint panel, sprout outline, file name,
+     "Image to come" (IMAGE-PROMPTS.md placeholder rule; text colour is
+     secondary — a measured pair on mint tint in CONTRAST.md step 2:
+     5.83 light / 6.89 dark. Tertiary on mint tint was measured during
+     this build at 4.39 light and was NOT used — see README). */
+  .imgph{
+    background:var(--mint-tint); border-radius:12px; aspect-ratio:3/2;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px;
+    padding:12px; text-align:center; width:100%;
+  }
+  .imgph svg{width:54px; height:52px}
+  .imgph .ph-label{font-size:13px; font-weight:600; color:var(--secondary); margin:0}
+  .imgph .ph-file{font-size:13px; color:var(--secondary); margin:0; overflow-wrap:anywhere}
+  .imgph.mini{aspect-ratio:auto; height:100%; padding:6px}
+  .imgph.mini svg{width:30px; height:29px}
+  /* Milestone rows (brand §3 component). */
+  .mrow{
+    display:flex; align-items:flex-start; gap:10px; width:100%; text-align:left;
+    background:var(--surface); border:1px solid var(--border); border-radius:16px;
+    padding:14px 16px; margin-bottom:8px; cursor:pointer; font-family:inherit; color:var(--text);
+  }
+  .mrow.now{border-left:3px solid var(--mint-tint)}
+  .mrow.done{background:var(--surface2); opacity:.7}
+  .mrow .m-main{flex:1; min-width:0}
+  .mrow .m-name{font-size:17px; font-weight:600; line-height:1.3}
+  .mrow .m-meta{display:flex; align-items:center; gap:8px; margin-top:6px; flex-wrap:wrap}
+  .mrow .m-status{display:flex; align-items:center; gap:6px; font-size:13px; font-weight:600; color:var(--secondary); margin-top:6px}
+  .mrow .chev{color:var(--tertiary); align-self:center}
+  .heart{color:var(--coral); display:inline-flex; align-items:center; gap:5px; font-size:13px; font-weight:600}
+  .heart .coral-label{color:var(--coral-text)}
+  /* Filter chips on Milestones. */
+  .filters{display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px}
+  .fchip{
+    display:inline-flex; align-items:center; gap:5px; border-radius:999px; cursor:pointer;
+    border:1px solid var(--border); background:var(--surface); color:var(--secondary);
+    font-size:13px; font-weight:600; font-family:inherit; min-height:44px; padding:8px 12px;
+  }
+  .fchip svg{width:14px; height:14px}
+  .fchip.selected{background:var(--btn-bg); color:var(--btn-text); border-color:var(--btn-bg)}
+  .group-label{font-size:13px; font-weight:600; color:var(--secondary); letter-spacing:.06em; text-transform:uppercase; margin:16px 0 8px}
+  /* Activity steps. */
+  .steps{margin:0; padding-left:22px}
+  .steps li{font-size:16px; line-height:1.5; margin-bottom:10px}
+  .steps li::marker{font-weight:700; color:var(--primary)}
+  /* Static rows (Growth / Profile). */
+  .srow{display:flex; align-items:center; gap:10px; padding:12px 0; border-bottom:1px solid var(--border)}
+  .srow:last-child{border-bottom:0}
+  .srow .s-label{flex:1; font-size:16px; min-width:0}
+  .srow .s-value{font-size:16px; color:var(--secondary); text-align:right}
+  .figure{font-size:24px; font-weight:700}
+  .note-line{font-size:13px; color:var(--secondary); line-height:1.5}
+  .saved-note{
+    display:none; background:var(--mint-tint); color:var(--text); border-radius:12px;
+    padding:12px 14px; font-size:16px; line-height:1.5; margin-bottom:8px;
+  }
+  .saved-note.show{display:block}
+  .swap-panel{display:none}
+  .swap-panel.show{display:block}
+  .swap-row{
+    display:flex; gap:12px; align-items:center; width:100%; text-align:left; cursor:pointer;
+    background:var(--surface); border:1px solid var(--border); border-radius:16px;
+    padding:10px 12px; margin-bottom:8px; font-family:inherit; color:var(--text);
+  }
+  .swap-row .sw-thumb{width:64px; height:44px; flex:none}
+  .swap-row .sw-main{flex:1; min-width:0}
+  .static-tag{
+    display:inline-block; font-size:12px; font-weight:600; color:var(--secondary);
+    border:1px solid var(--border); border-radius:999px; padding:3px 9px; margin-bottom:16px;
+  }
+  /* Tab bar: 5 sections, targets ≥44 px. */
+  .tabbar{display:flex; border-top:1px solid var(--border); background:var(--surface); flex:none}
+  .tabbar button{
+    flex:1; border:0; background:none; padding:9px 2px 11px; cursor:pointer; min-height:52px;
+    font-family:inherit; font-size:11px; color:var(--secondary);
+    display:flex; flex-direction:column; align-items:center; gap:3px;
+  }
+  .tabbar button.active{color:var(--link); font-weight:700}
+  .tabbar .ic{width:21px; height:21px}
+  .backbtn{
+    display:inline-flex; align-items:center; gap:4px; border:0; background:none; cursor:pointer;
+    color:var(--link); font-size:16px; font-weight:600; font-family:inherit;
+    min-height:44px; padding:8px 8px 8px 0; margin-top:8px;
+  }
+  .logo-head{display:flex; align-items:center; margin:14px 0 18px}
+  .logo-profile{display:flex; justify-content:center; margin:8px 0 20px}
+
+  /* Real images (crayon storybook, approved 26/10): .imgph keeps its size, the image covers it. */
+  .imgph.has-img{background-size:cover; background-position:center; background-color:var(--cream, #FFF8EE)}
+  .imgph.has-img.contain{background-size:contain; background-repeat:no-repeat}
+  .imgph.has-img > *{display:none}
+</style>
+</head>
+<body>
+<p class="hint">Tap <b>Today's activity</b> to open the activity, tap a <b>milestone</b> for its detail, and try <b>Done</b> and <b>Shorter today</b> in the activity. Profile is a static preview; Growth's This week fills as you save. This demo keeps nothing after a reload.</p>
+
+<!-- Lucide-style icon sprite (stroke icons, 24 grid). -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></symbol>
+    <symbol id="i-list" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 17 2 2 4-4"/><path d="m3 7 2 2 4-4"/><path d="M13 6h8"/><path d="M13 12h8"/><path d="M13 18h8"/></symbol>
+    <symbol id="i-blocks" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="8.5" y="14" width="7" height="7" rx="1.5"/><path d="M10 6.5h4"/><path d="M12 10v4"/></symbol>
+    <symbol id="i-growth" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></symbol>
+    <symbol id="i-user" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5"/></symbol>
+    <symbol id="i-footprints" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M6.2 3.2c1.9-.3 3.4 1.6 3.7 4.2.3 2.4-.6 4.4-2.2 4.7-1.7.3-3.2-1.4-3.5-3.9C3.9 5.6 4.5 3.5 6.2 3.2Z"/><circle cx="4.1" cy="14.6" r="1.15"/><circle cx="6.9" cy="15.1" r="1.05"/><circle cx="9.2" cy="14.2" r=".95"/><path d="M16.9 9.4c1.9-.3 3.4 1.6 3.7 4.2.3 2.4-.6 4.4-2.2 4.7-1.7.3-3.2-1.4-3.5-3.9-.3-2.6.3-4.7 2-5Z" transform="translate(-1.8 1.6)"/></symbol>
+    <symbol id="i-messages" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 9a2 2 0 0 1-2 2H6l-4 4V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v5Z"/><path d="M18 9h2a2 2 0 0 1 2 2v11l-4-4h-6a2 2 0 0 1-2-2v-1"/></symbol>
+    <symbol id="i-users" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></symbol>
+    <symbol id="i-check-circle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m8.5 12.5 2.5 2.5 5-5.5"/></symbol>
+    <symbol id="i-circle-dot" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none"/></symbol>
+    <symbol id="i-circle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/></symbol>
+    <symbol id="i-heart" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.29 1.51 4.04 3 5.5l7 7Z"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v8"/><path d="M8 12h8"/></symbol>
+    <symbol id="i-chev-r" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></symbol>
+    <symbol id="i-chev-l" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></symbol>
+  </defs>
+</svg>
+
+<div class="phone" id="phone">
+  <div class="notch"></div>
+  <div class="screen" id="screen">
+
+    <!-- ================= TODAY (tappable) ================= -->
+    <section class="view active" id="view-today">
+      <div class="logo-head">
+        <svg class="logo-svg" width="132" height="56" viewBox="0 0 480 205" role="img" aria-label="bloomy"><path class="logo-leaf" d="M197,66 C168,68 148,52 144,26 C172,26 192,40 197,66 Z"/><path class="logo-leaf" d="M199,54 C224,50 242,34 244,8 C218,12 202,28 199,54 Z"/><path class="logo-stem" d="M197,108 C197,88 197,72 198,54" fill="none" stroke-width="7" stroke-linecap="round"/><text class="logo-word" x="24" y="170" font-size="118" letter-spacing="-2">bloomy</text></svg>
+      </div>
+      <h1 class="rounded">Mia · 18 months</h1>
+      <p class="sub">A calm look at Mia's month — one small thing at a time.</p>
+
+      <div class="section">
+        <div class="imgph" role="img" aria-label="Placeholder for bloomy-hero.jpg — image to come">
+          <svg viewBox="135 0 120 115" aria-hidden="true"><path class="spr-leaf" d="M197,66 C168,68 148,52 144,26 C172,26 192,40 197,66 Z"/><path class="spr-leaf" d="M199,54 C224,50 242,34 244,8 C218,12 202,28 199,54 Z"/><path class="spr-stem" d="M197,108 C197,88 197,72 198,54"/></svg>
+          <p class="ph-label">Image to come</p>
+          <p class="ph-file">bloomy-hero.jpg</p>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="card tint">
+          <p class="meta" style="margin:0 0 6px; font-weight:600">THIS MONTH · MONTH 18</p>
+          <h2 class="rounded">Words, steps, and taking turns</h2>
+          <p class="body-text">This month, first words often multiply, walking turns into climbing, and play starts to include you. Some children say twenty words now; some say four and point beautifully — both are busy learning to talk.</p>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-head"><h3>Today's activity</h3></div>
+        <div class="card">
+          <div class="imgph" role="img" aria-label="Placeholder for bloomy-activity-play.jpg — image to come">
+            <svg viewBox="135 0 120 115" aria-hidden="true"><path class="spr-leaf" d="M197,66 C168,68 148,52 144,26 C172,26 192,40 197,66 Z"/><path class="spr-leaf" d="M199,54 C224,50 242,34 244,8 C218,12 202,28 199,54 Z"/><path class="spr-stem" d="M197,108 C197,88 197,72 198,54"/></svg>
+            <p class="ph-label">Image to come</p>
+            <p class="ph-file">bloomy-activity-play.jpg</p>
+          </div>
+          <p class="meta" style="display:flex; align-items:center; gap:8px; margin:12px 0 6px">
+            <span class="chip chip-play"><svg><use href="#i-blocks"/></svg><span class="dot"></span>Play</span>
+            <span style="display:inline-flex; align-items:center; gap:4px"><svg class="ic sm"><use href="#i-clock"/></svg>10 minutes</span>
+          </p>
+          <h3>Stack, wait, topple</h3>
+          <p class="body-text">Stacking builds careful hands, a little patience, and the joy of knocking things down on purpose.</p>
+          <div style="height:12px"></div>
+          <button type="button" class="btn" onclick="openActivity(false,false)">See how</button>
+          <div class="tertiary-row">
+            <button type="button" class="tbtn" onclick="openActivity(true,false)">Shorter today</button>
+            <button type="button" class="tbtn" onclick="openActivity(false,true)">Swap</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-head">
+          <h3>Milestones right now</h3>
+          <button type="button" class="tbtn" style="flex:none" onclick="showTab('milestones')">See all</button>
+        </div>
+        <div id="snapshot"></div>
+      </div>
+
+      <div class="section">
+        <div class="card">
+          <p style="margin:0 0 6px"><span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:var(--coral)" aria-hidden="true"></span></p>
+          <h3>Did something small happen today?</h3>
+          <p class="body-text">Nothing to add is fine too. Quiet days count.</p>
+          <div style="height:12px"></div>
+          <button type="button" class="btn secondary" onclick="showTab('growth')"><svg class="ic sm"><use href="#i-plus"/></svg>Add a memory</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= MILESTONES (tappable) ================= -->
+    <section class="view" id="view-milestones">
+      <div style="height:16px"></div>
+      <h1 class="rounded">Milestones</h1>
+      <p class="sub">Things to watch for as Mia grows — ranges, not deadlines.</p>
+      <div class="filters" id="filters">
+        <button type="button" class="fchip selected" data-filter="All" onclick="setFilter('All')">All</button>
+        <button type="button" class="fchip" data-filter="Motor" onclick="setFilter('Motor')"><svg><use href="#i-footprints"/></svg>Motor</button>
+        <button type="button" class="fchip" data-filter="Language" onclick="setFilter('Language')"><svg><use href="#i-messages"/></svg>Language</button>
+        <button type="button" class="fchip" data-filter="Play" onclick="setFilter('Play')"><svg><use href="#i-blocks"/></svg>Play</button>
+        <button type="button" class="fchip" data-filter="Social" onclick="setFilter('Social')"><svg><use href="#i-users"/></svg>Social</button>
+      </div>
+      <p class="meta" id="ms-count"></p>
+      <div id="ms-groups"></div>
+      <div class="card flat" style="margin-top:16px">
+        <p class="body-text">Milestones are things to watch for, not tests to pass. Every child arrives in their own order.</p>
+      </div>
+    </section>
+
+    <!-- ================= MILESTONE DETAIL (tappable) ================= -->
+    <section class="view" id="view-detail">
+      <button type="button" class="backbtn" onclick="showTab('milestones')"><svg class="ic sm"><use href="#i-chev-l"/></svg>Milestones</button>
+      <h2 class="rounded" id="d-name"></h2>
+      <p class="m-status" id="d-status" style="display:flex; align-items:center; gap:6px; font-size:13px; font-weight:600; color:var(--secondary)"></p>
+      <p style="display:flex; align-items:center; gap:8px; flex-wrap:wrap">
+        <span id="d-chip"></span>
+        <span class="meta" id="d-note"></span>
+      </p>
+      <div class="card">
+        <h3>What it can look like</h3>
+        <p class="body-text" id="d-looks"></p>
+      </div>
+      <div class="card">
+        <h3>The wide normal range</h3>
+        <p class="body-text" id="d-range"></p>
+      </div>
+      <div class="card flat">
+        <p class="body-text">Children develop at very different speeds. If you're ever worried, your paediatrician knows Mia — Bloomy doesn't, and a check is always worth it.</p>
+      </div>
+      <p class="saved-note" id="d-saw-note">Saved — this milestone now shows as Done. Lovely.</p>
+      <button type="button" class="btn" id="d-saw" onclick="sawThis()">I saw this</button>
+      <div style="height:8px"></div>
+      <button type="button" class="btn secondary" onclick="showTab('growth')">Add a memory of this</button>
+    </section>
+
+    <!-- ================= ACTIVITY DETAIL (tappable) ================= -->
+    <section class="view" id="view-activity">
+      <div style="height:16px"></div>
+      <h1 class="rounded">Today's activity</h1>
+      <p class="sub">One activity a day is plenty.</p>
+      <div class="card">
+        <div class="imgph" id="act-hero" role="img" aria-label="Placeholder for bloomy-activity-play.jpg — image to come">
+          <svg viewBox="135 0 120 115" aria-hidden="true"><path class="spr-leaf" d="M197,66 C168,68 148,52 144,26 C172,26 192,40 197,66 Z"/><path class="spr-leaf" d="M199,54 C224,50 242,34 244,8 C218,12 202,28 199,54 Z"/><path class="spr-stem" d="M197,108 C197,88 197,72 198,54"/></svg>
+          <p class="ph-label">Image to come</p>
+          <p class="ph-file" id="act-hero-file">bloomy-activity-play.jpg</p>
+        </div>
+        <p class="meta" style="display:flex; align-items:center; gap:8px; margin:12px 0 6px">
+          <span id="act-chip"><span class="chip chip-play"><svg><use href="#i-blocks"/></svg><span class="dot"></span>Play</span></span>
+          <span style="display:inline-flex; align-items:center; gap:4px"><svg class="ic sm"><use href="#i-clock"/></svg><span id="act-time">10 minutes</span></span>
+        </p>
+        <h2 class="rounded" id="act-title">Stack, wait, topple</h2>
+        <p class="body-text" id="act-needs">You'll need: 4–6 blocks or stacking cups, and a floor you don't mind being noisy</p>
+      </div>
+
+      <p class="saved-note" id="act-done-note">Saved to Mia's memories — you can find it in Growth, under This week.</p>
+
+      <div class="card" id="act-full">
+        <h3>How to play</h3>
+        <ol class="steps" id="act-steps">
+          <li>Sit facing Mia and stack two blocks slowly, so she can watch your hands.</li>
+          <li>Pause with your hand hovering — let her knock it down or add one herself.</li>
+          <li>Rebuild together, counting out loud, “one… two…”.</li>
+          <li>When she stacks two, stop and celebrate that, not the tower's height.</li>
+          <li>Finish by toppling the tallest tower together, on purpose, with a countdown.</li>
+        </ol>
+      </div>
+
+      <div class="card tint" id="act-shorter" style="display:none">
+        <h3>Shorter today · 5 minutes</h3>
+        <p class="body-text" id="act-shorter-body">Skip the counting. Stack, wait for her hands, topple — three towers is a whole game.</p>
+      </div>
+
+      <div class="card tint">
+        <h3>When it clicks</h3>
+        <p class="body-text" id="act-clicks">Trying looks like Mia stacking two, watching them fall, and handing you the next block. That's the game.</p>
+      </div>
+
+      <button type="button" class="btn" id="act-done-btn" onclick="activityDone()">Done — save as memory</button>
+      <div class="tertiary-row">
+        <button type="button" class="tbtn" id="act-shorter-btn" onclick="toggleShorter()">Shorter today</button>
+        <button type="button" class="tbtn" id="act-swap-btn" onclick="toggleSwap()">Swap for another</button>
+      </div>
+      <button type="button" class="tbtn" id="act-back" style="display:none" onclick="backToToday()">Back to today's pick: Stack, wait, topple</button>
+
+      <div class="swap-panel" id="act-swap">
+        <h3 style="margin-top:16px">Swap for another</h3>
+        <button type="button" class="swap-row" onclick="pickActivity('motor')">
+          <span class="sw-thumb"><span class="imgph mini"><svg viewBox="135 0 120 115" aria-hidden="true"><path class="spr-leaf" d="M197,66 C168,68 148,52 144,26 C172,26 192,40 197,66 Z"/><path class="spr-leaf" d="M199,54 C224,50 242,34 244,8 C218,12 202,28 199,54 Z"/><path class="spr-stem" d="M197,108 C197,88 197,72 198,54"/></svg></span></span>
+          <span class="sw-main">
+            <span class="chip chip-motor"><svg><use href="#i-footprints"/></svg><span class="dot"></span>Motor</span>
+            <span class="meta" style="display:block; margin-top:5px">Push and parade — a lap of the room with a push-toy</span>
+            <span class="caption" style="display:block">bloomy-activity-motor.jpg · Image to come</span>
+          </span>
+        </button>
+        <button type="button" class="swap-row" onclick="pickActivity('language')">
+          <span class="sw-thumb"><span class="imgph mini"><svg viewBox="135 0 120 115" aria-hidden="true"><path class="spr-leaf" d="M197,66 C168,68 148,52 144,26 C172,26 192,40 197,66 Z"/><path class="spr-leaf" d="M199,54 C224,50 242,34 244,8 C218,12 202,28 199,54 Z"/><path class="spr-stem" d="M197,108 C197,88 197,72 198,54"/></svg></span></span>
+          <span class="sw-main">
+            <span class="chip chip-language"><svg><use href="#i-messages"/></svg><span class="dot"></span>Language</span>
+            <span class="meta" style="display:block; margin-top:5px">Name it, wait, cheer — point, pause, and name the pictures</span>
+            <span class="caption" style="display:block">bloomy-activity-language.jpg · Image to come</span>
+          </span>
+        </button>
+        <button type="button" class="swap-row" onclick="pickActivity('social')">
+          <span class="sw-thumb"><span class="imgph mini"><svg viewBox="135 0 120 115" aria-hidden="true"><path class="spr-leaf" d="M197,66 C168,68 148,52 144,26 C172,26 192,40 197,66 Z"/><path class="spr-leaf" d="M199,54 C224,50 242,34 244,8 C218,12 202,28 199,54 Z"/><path class="spr-stem" d="M197,108 C197,88 197,72 198,54"/></svg></span></span>
+          <span class="sw-main">
+            <span class="chip chip-social"><svg><use href="#i-users"/></svg><span class="dot"></span>Social</span>
+            <span class="meta" style="display:block; margin-top:5px">Tea for two bears — a pretend tea party, taking turns</span>
+            <span class="caption" style="display:block">bloomy-activity-social.jpg · Image to come</span>
+          </span>
+        </button>
+      </div>
+    </section>
+
+    <!-- ================= GROWTH / MEMORIES (static) ================= -->
+    <section class="view" id="view-growth">
+      <div style="height:16px"></div>
+      <h1 class="rounded">Growth &amp; memories</h1>
+      <p class="sub">The small things, kept.</p>
+      <span class="static-tag">Mostly static preview — This week fills as you save</span>
+      <button type="button" class="btn secondary" onclick="document.getElementById('growth-note').classList.add('show')"><svg class="ic sm"><use href="#i-plus"/></svg>Add a memory</button>
+      <div style="height:8px"></div>
+      <p class="saved-note" id="growth-note">In the full app this opens the memory form. The demo keeps memories as a static timeline, except for This week below, which fills when you save an activity.</p>
+
+      <div class="section-head" style="margin-top:24px"><h3>This week</h3></div>
+      <div id="memory-week">
+        <div class="card" id="week-empty">
+          <div class="imgph" role="img" aria-label="Placeholder for bloomy-spot-sprout.png — image to come">
+            <svg viewBox="135 0 120 115" aria-hidden="true"><path class="spr-leaf" d="M197,66 C168,68 148,52 144,26 C172,26 192,40 197,66 Z"/><path class="spr-leaf" d="M199,54 C224,50 242,34 244,8 C218,12 202,28 199,54 Z"/><path class="spr-stem" d="M197,108 C197,88 197,72 198,54"/></svg>
+            <p class="ph-label">Image to come</p>
+            <p class="ph-file">bloomy-spot-sprout.png</p>
+          </div>
+          <h3 style="margin-top:12px">Nothing saved this week yet</h3>
+          <p class="body-text">No memories saved this week yet — today's activity can become the first.</p>
+        </div>
+      </div>
+
+      <div class="section-head" style="margin-top:24px"><h3>Memories</h3></div>
+      <div id="memory-list">
+        <div class="card">
+          <div class="imgph" role="img" aria-label="Placeholder for bloomy-activity-play.jpg — image to come">
+            <svg viewBox="135 0 120 115" aria-hidden="true"><path class="spr-leaf" d="M197,66 C168,68 148,52 144,26 C172,26 192,40 197,66 Z"/><path class="spr-leaf" d="M199,54 C224,50 242,34 244,8 C218,12 202,28 199,54 Z"/><path class="spr-stem" d="M197,108 C197,88 197,72 198,54"/></svg>
+            <p class="ph-label">Image to come</p>
+            <p class="ph-file">bloomy-activity-play.jpg</p>
+          </div>
+          <p style="display:flex; align-items:center; gap:8px; margin:12px 0 6px">
+            <span class="heart"><svg class="ic sm"><use href="#i-heart"/></svg><span class="coral-label">Saved memory</span></span>
+            <span class="chip chip-play"><svg><use href="#i-blocks"/></svg><span class="dot"></span>Play</span>
+          </p>
+          <p class="body-text">First tower of three, 12 Oct — she clapped before it fell.</p>
+        </div>
+        <div class="card">
+          <p style="display:flex; align-items:center; gap:8px; margin:0 0 6px">
+            <span class="heart"><svg class="ic sm"><use href="#i-heart"/></svg><span class="coral-label">Saved memory</span></span>
+            <span class="chip chip-language"><svg><use href="#i-messages"/></svg><span class="dot"></span>Language</span>
+          </p>
+          <p class="body-text">Said ‘more juice’ at breakfast, 21 Oct.</p>
+        </div>
+      </div>
+
+      <div class="section-head" style="margin-top:24px"><h3>Growth</h3></div>
+      <div class="card">
+        <div style="display:flex; gap:16px">
+          <div style="flex:1">
+            <p class="meta" style="margin:0 0 2px">Weight</p>
+            <p style="margin:0"><span class="figure rounded">10.2 kg</span></p>
+          </div>
+          <div style="flex:1">
+            <p class="meta" style="margin:0 0 2px">Length</p>
+            <p style="margin:0"><span class="figure rounded">81.5 cm</span></p>
+          </div>
+        </div>
+        <p class="caption" style="margin:8px 0 0">Demo figures — Mia's real measurements go here in the full app.</p>
+        <svg viewBox="0 0 320 90" width="100%" style="display:block; margin-top:12px" role="img" aria-label="A simple line showing Mia's growth rising gently over time">
+          <polyline points="8,70 70,62 135,52 200,40 265,30 312,22" style="fill:none; stroke:var(--primary); stroke-width:3; stroke-linecap:round; stroke-linejoin:round"/>
+          <circle cx="8" cy="70" r="4" style="fill:var(--primary)"/><circle cx="70" cy="62" r="4" style="fill:var(--primary)"/><circle cx="135" cy="52" r="4" style="fill:var(--primary)"/><circle cx="200" cy="40" r="4" style="fill:var(--primary)"/><circle cx="265" cy="30" r="4" style="fill:var(--primary)"/><circle cx="312" cy="22" r="4" style="fill:var(--primary)"/>
+        </svg>
+        <p class="body-text" style="margin-top:12px">Growth lines are Mia's own — following her own curve is what matters.</p>
+      </div>
+    </section>
+
+    <!-- ================= PROFILE (static) ================= -->
+    <section class="view" id="view-profile">
+      <div style="height:16px"></div>
+      <h1 class="rounded">Profile</h1>
+      <p class="sub">Mia, and the grown-ups who love her.</p>
+      <span class="static-tag">Static preview in the demo</span>
+      <div class="logo-profile">
+        <svg class="logo-svg" width="170" height="73" viewBox="0 0 480 205" role="img" aria-label="bloomy"><path class="logo-leaf" d="M197,66 C168,68 148,52 144,26 C172,26 192,40 197,66 Z"/><path class="logo-leaf" d="M199,54 C224,50 242,34 244,8 C218,12 202,28 199,54 Z"/><path class="logo-stem" d="M197,108 C197,88 197,72 198,54" fill="none" stroke-width="7" stroke-linecap="round"/><text class="logo-word" x="24" y="170" font-size="118" letter-spacing="-2">bloomy</text></svg>
+      </div>
+      <div class="card">
+        <h3>Mia</h3>
+        <div class="srow"><span class="s-label">Age</span><span class="s-value">18 months</span></div>
+        <div class="srow"><span class="s-label">This month's focus</span><span class="s-value">Words, steps, and taking turns</span></div>
+      </div>
+      <div class="card">
+        <h3>Caregivers</h3>
+        <div class="srow"><span class="s-label">You</span><span class="s-value">Parent</span></div>
+        <div class="srow"><span class="s-label">Second caregiver</span><span class="s-value">Not added in the demo</span></div>
+      </div>
+      <div class="card">
+        <h3>Gentle preferences</h3>
+        <div class="srow"><span class="s-label">One activity a day</span><span class="s-value">On</span></div>
+        <div class="srow"><span class="s-label">Gentle reminder</span><span class="s-value">9:00 in the morning</span></div>
+        <div class="srow"><span class="s-label">Appearance</span><span class="s-value">Follows your device</span></div>
+      </div>
+      <div class="card">
+        <h3>Your data</h3>
+        <p class="body-text">Photos stay on this device in the demo</p>
+        <div class="srow"><span class="s-label">Notifications</span><span class="s-value">Gentle</span></div>
+        <div class="srow"><span class="s-label">Privacy</span><svg class="ic sm" style="color:var(--tertiary)"><use href="#i-chev-r"/></svg></div>
+        <div class="srow"><span class="s-label">About bloomy</span><svg class="ic sm" style="color:var(--tertiary)"><use href="#i-chev-r"/></svg></div>
+      </div>
+    </section>
+  </div>
+
+  <nav class="tabbar">
+    <button type="button" class="active" data-tab="today" onclick="showTab('today')"><svg class="ic"><use href="#i-sun"/></svg>Today</button>
+    <button type="button" data-tab="milestones" onclick="showTab('milestones')"><svg class="ic"><use href="#i-list"/></svg>Milestones</button>
+    <button type="button" data-tab="activity" onclick="showTab('activity')"><svg class="ic"><use href="#i-blocks"/></svg>Activity</button>
+    <button type="button" data-tab="growth" onclick="showTab('growth')"><svg class="ic"><use href="#i-growth"/></svg>Growth</button>
+    <button type="button" data-tab="profile" onclick="showTab('profile')"><svg class="ic"><use href="#i-user"/></svg>Profile</button>
+  </nav>
+</div>
+
+<script>
+
+  /* Bloomy demo state — in-memory only. Milestone data is the fixed
+     demo set from Bloomy-brand-system.md §4. */
+  var DOMAIN_ICON = { Motor: "footprints", Language: "messages", Play: "blocks", Social: "users" };
+  var STATUS_META = {
+    done:  { label: "Done",          icon: "check-circle", cls: "ic-done" },
+    now:   { label: "Happening now", icon: "circle-dot",   cls: "ic-now" },
+    later: { label: "Coming later",  icon: "circle",       cls: "ic-later" }
+  };
+  var MILESTONES = [
+    { id: 1, domain: "Motor",    status: "done",  name: "Walks across a room without holding on",
+      note: "often around 12–15 months",
+      looks: "Mia lets go of the furniture, crosses the room on her own feet, and sits down when she is ready — a wobble is part of the picture." },
+    { id: 2, domain: "Motor",    status: "now",   name: "Kicks a ball forward while standing",
+      note: "often around 18–22 months",
+      looks: "Standing near a ball, Mia swings one foot at it and the ball rolls forward. She may steady herself on a chair, or sit down suddenly — both are trying." },
+    { id: 3, domain: "Language", status: "done",  name: "Says at least 6 words besides “mama/dada”",
+      note: "often around 15–18 months",
+      looks: "Words pop out in context — “ball” at the park, “up” with arms raised, “gone” at an empty bowl. They do not need to sound grown-up to count." },
+    { id: 4, domain: "Language", status: "now",   name: "Puts two words together (“more juice”)",
+      note: "often around 18–24 months",
+      looks: "Two words arrive as a pair — “more juice”, “daddy go”, “my shoe”. The pair may run together at first, and she may use the same one for a while." },
+    { id: 5, domain: "Play",     status: "done",  name: "Stacks a tower of 3 blocks",
+      note: "often around 15–18 months", memory: true,
+      looks: "One block, a pause, a second, then a third balanced on top — and often a proud clap before the tower falls." },
+    { id: 6, domain: "Play",     status: "now",   name: "Stacks a tower of 6 blocks",
+      note: "often around 18–22 months",
+      looks: "The tower grows higher and wobblier. Mia slows down for the top blocks and breathes out when one stays — the careful hands are the milestone." },
+    { id: 7, domain: "Social",   status: "done",  name: "Brings you a toy just to show you",
+      note: "often around 14–18 months",
+      looks: "Mia carries a toy across the room, holds it up for you to see, and watches your face. She is not asking for help — she is sharing the interesting thing." },
+    { id: 8, domain: "Social",   status: "later", name: "Takes turns in a back-and-forth game",
+      note: "often around 20–26 months",
+      looks: "A ball rolls to Mia, she rolls it back, and waits for it to come again — the waiting for your turn is the new part, and it comes and goes at first." }
+  ];
+  var currentFilter = "All";
+  var currentDetail = null;
+  var savedSaw = {};
+
+  function chipHTML(domain) {
+    return '<span class="chip chip-' + domain.toLowerCase() + '"><svg><use href="#i-' +
+      DOMAIN_ICON[domain] + '"/></svg><span class="dot"></span>' + domain + '</span>';
+  }
+  function rowHTML(m) {
+    var st = STATUS_META[m.status];
+    var heart = m.memory
+      ? '<span class="heart"><svg class="ic sm"><use href="#i-heart"/></svg><span class="coral-label">Memory saved</span></span>'
+      : "";
+    return '<button type="button" class="mrow ' + m.status + '" onclick="openDetail(' + m.id + ')">' +
+      '<svg class="ic ' + st.cls + '"><use href="#i-' + st.icon + '"/></svg>' +
+      '<span class="m-main"><span class="m-name">' + m.name + '</span>' +
+      '<span class="m-meta">' + chipHTML(m.domain) + '<span class="meta">' + m.note + '</span>' + heart + '</span>' +
+      '<span class="m-status">' + st.label + '</span></span>' +
+      '<svg class="ic sm chev"><use href="#i-chev-r"/></svg></button>';
+  }
+  function renderMilestones() {
+    var groups = [["now", "Happening now"], ["done", "Done"], ["later", "Coming later"]];
+    var html = "";
+    groups.forEach(function (g) {
+      var rows = MILESTONES.filter(function (m) {
+        return m.status === g[0] && (currentFilter === "All" || m.domain === currentFilter);
+      });
+      if (!rows.length) return;
+      html += '<p class="group-label">' + g[1] + '</p>';
+      rows.forEach(function (m) { html += rowHTML(m); });
+    });
+    if (!html) html = '<p class="note-line">Nothing in this domain yet.</p>';
+    document.getElementById("ms-groups").innerHTML = html;
+    var counts = { done: 0, now: 0, later: 0 };
+    MILESTONES.forEach(function (m) { counts[m.status]++; });
+    document.getElementById("ms-count").textContent =
+      MILESTONES.length + " milestones · " + counts.done + " done, " +
+      counts.now + " happening now, " + counts.later + " coming later";
+  }
+  function renderSnapshot() {
+    var ids = [2, 5, 8];
+    document.getElementById("snapshot").innerHTML = ids.map(function (id) {
+      return rowHTML(MILESTONES.filter(function (m) { return m.id === id; })[0]);
+    }).join("");
+  }
+  function setFilter(f) {
+    currentFilter = f;
+    document.querySelectorAll("#filters .fchip").forEach(function (btn) {
+      btn.classList.toggle("selected", btn.getAttribute("data-filter") === f);
+    });
+    renderMilestones();
+  }
+  function openDetail(id) {
+    var m = MILESTONES.filter(function (x) { return x.id === id; })[0];
+    if (!m) return;
+    currentDetail = id;
+    var st = STATUS_META[m.status];
+    document.getElementById("d-name").textContent = m.name;
+    document.getElementById("d-status").innerHTML =
+      '<svg class="ic ' + st.cls + '"><use href="#i-' + st.icon + '"/></svg>' + st.label;
+    document.getElementById("d-chip").innerHTML = chipHTML(m.domain);
+    document.getElementById("d-note").textContent = m.note;
+    document.getElementById("d-looks").textContent = m.looks;
+    document.getElementById("d-range").textContent =
+      "This is " + m.note + " for many children — and the span around that is wide. " +
+      "Earlier or later is information, not a verdict, and Mia's own order is the one that counts.";
+    var btn = document.getElementById("d-saw");
+    var note = document.getElementById("d-saw-note");
+    if (m.status === "done") {
+      btn.textContent = "Saved as Done";
+      btn.classList.add("saved");
+      btn.disabled = true;
+      note.classList.toggle("show", !!savedSaw[id]);
+    } else {
+      btn.textContent = "I saw this";
+      btn.classList.remove("saved");
+      btn.disabled = false;
+      note.classList.remove("show");
+    }
+    showTab("detail");
+  }
+  function sawThis() {
+    var m = MILESTONES.filter(function (x) { return x.id === currentDetail; })[0];
+    if (!m || m.status === "done") return;
+    m.status = "done";
+    savedSaw[m.id] = true;
+    renderMilestones();
+    renderSnapshot();
+    openDetail(m.id);
+  }
+
+  /* Activity state — step 4. The four activities are data, so picking
+     a swap activity re-renders the whole detail view. Activity copy is
+     illustrative demo content in the brand voice, not clinically
+     reviewed (brand system §5). */
+  var ACTIVITIES = {
+    play: {
+      name: "Stack, wait, topple", domain: "Play", file: "bloomy-activity-play.jpg",
+      needs: "You'll need: 4–6 blocks or stacking cups, and a floor you don't mind being noisy",
+      steps: [
+        "Sit facing Mia and stack two blocks slowly, so she can watch your hands.",
+        "Pause with your hand hovering — let her knock it down or add one herself.",
+        "Rebuild together, counting out loud, “one… two…”.",
+        "When she stacks two, stop and celebrate that, not the tower's height.",
+        "Finish by toppling the tallest tower together, on purpose, with a countdown."
+      ],
+      shorter: "Skip the counting. Stack, wait for her hands, topple — three towers is a whole game.",
+      clicks: "Trying looks like Mia stacking two, watching them fall, and handing you the next block. That's the game."
+    },
+    motor: {
+      name: "Push and parade", domain: "Motor", file: "bloomy-activity-motor.jpg",
+      needs: "You'll need: a sturdy box, a push-toy, or a chair you can slide — and a clear lap of the room",
+      steps: [
+        "Clear one lap of the room and put the box or push-toy at the start.",
+        "Let Mia take hold and walk the lap with you beside her, not steering.",
+        "Pause halfway and cheer the pushing itself, not the speed.",
+        "Turn the box around together and walk the lap back the other way.",
+        "Finish with a little parade: one more lap, waving at the furniture as you pass."
+      ],
+      shorter: "One lap only, no turning back. Push, pause, cheer — that is a whole parade.",
+      clicks: "Trying looks like Mia pushing with both hands, stopping to look, and pushing again. The wobble is the practice."
+    },
+    language: {
+      name: "Name it, wait, cheer", domain: "Language", file: "bloomy-activity-language.jpg",
+      needs: "You'll need: a familiar picture book with big, simple pictures — and a lap to sit on",
+      steps: [
+        "Sit Mia on your lap and open the book to a page she already knows.",
+        "Point at one picture and name it slowly, just the one word.",
+        "Wait, with your finger still on the picture, and give her time to try it.",
+        "Whatever she says — the word, a sound, a point — cheer it like an answer.",
+        "Turn one page and do it again, then close the book while it is still fun."
+      ],
+      shorter: "One page only. Point, name, wait, cheer — then close the book on a happy note.",
+      clicks: "Trying looks like Mia pointing, babbling, or saying part of the word and looking at your face. That look is the conversation."
+    },
+    social: {
+      name: "Tea for two bears", domain: "Social", file: "bloomy-activity-social.jpg",
+      needs: "You'll need: two stuffed bears, a small cup or two, and a blanket for the picnic",
+      steps: [
+        "Set the two bears on the blanket and give Mia a cup of her own.",
+        "Pour for one bear, slowly, and say whose turn it is as you pour.",
+        "Hand Mia the cup and wait while she pours for the other bear.",
+        "Take a pretend sip from your bear and make a happy sound.",
+        "Pour one last round together, then pack the cups away side by side."
+      ],
+      shorter: "One round only. Pour for one bear, let Mia pour for the other, sip, done.",
+      clicks: "Trying looks like Mia pouring, waiting while you pour, and offering the cup back. The waiting is the turn-taking."
+    }
+  };
+  var actId = "play";
+  var actShorter = false;
+  var savedActivities = {};
+  function renderActivity(id) {
+    var a = ACTIVITIES[id];
+    if (!a) return;
+    actId = id;
+    actShorter = false;
+    document.getElementById("act-hero").setAttribute("aria-label", "Placeholder for " + a.file + " — image to come");
+    document.getElementById("act-hero-file").textContent = a.file;
+    document.getElementById("act-chip").innerHTML = chipHTML(a.domain);
+    document.getElementById("act-title").textContent = a.name;
+    document.getElementById("act-needs").textContent = a.needs;
+    document.getElementById("act-steps").innerHTML = a.steps.map(function (s) {
+      return "<li>" + s + "</li>";
+    }).join("");
+    document.getElementById("act-shorter-body").textContent = a.shorter;
+    document.getElementById("act-clicks").textContent = a.clicks;
+    document.getElementById("act-swap").classList.remove("show");
+    var saved = !!savedActivities[id];
+    var btn = document.getElementById("act-done-btn");
+    btn.classList.toggle("saved", saved);
+    btn.innerHTML = saved
+      ? '<svg class="ic sm"><use href="#i-check"/></svg>Saved as a memory'
+      : "Done — save as memory";
+    document.getElementById("act-done-note").classList.toggle("show", saved);
+    document.getElementById("act-back").style.display = id === "play" ? "none" : "flex";
+    applyShorter();
+  }
+  function applyShorter() {
+    document.getElementById("act-shorter").style.display = actShorter ? "block" : "none";
+    document.getElementById("act-full").style.display = actShorter ? "none" : "block";
+    document.getElementById("act-time").textContent = actShorter ? "5 minutes" : "10 minutes";
+    document.getElementById("act-shorter-btn").textContent = actShorter ? "Show the full version" : "Shorter today";
+  }
+  function toggleShorter() { actShorter = !actShorter; applyShorter(); }
+  function toggleSwap() { document.getElementById("act-swap").classList.toggle("show"); }
+  function pickActivity(id) { renderActivity(id); }
+  function backToToday() { renderActivity("play"); }
+  function openActivity(shorter, swap) {
+    renderActivity("play");
+    actShorter = !!shorter;
+    applyShorter();
+    if (swap) document.getElementById("act-swap").classList.add("show");
+    showTab("activity");
+  }
+  function activityDone() {
+    if (savedActivities[actId]) return;
+    savedActivities[actId] = true;
+    var a = ACTIVITIES[actId];
+    var btn = document.getElementById("act-done-btn");
+    btn.classList.add("saved");
+    btn.innerHTML = '<svg class="ic sm"><use href="#i-check"/></svg>Saved as a memory';
+    document.getElementById("act-done-note").classList.add("show");
+    var card = document.createElement("div");
+    card.className = "card";
+    card.id = "memory-" + actId;
+    card.innerHTML =
+      '<p style="display:flex; align-items:center; gap:8px; margin:0 0 6px">' +
+      '<span class="heart"><svg class="ic sm"><use href="#i-heart"/></svg><span class="coral-label">Saved memory</span></span>' +
+      chipHTML(a.domain) + '</p>' +
+      '<p class="body-text">' + a.name + ' — played together today, 26 Oct.</p>';
+    var empty = document.getElementById("week-empty");
+    if (empty) empty.style.display = "none";
+    document.getElementById("memory-week").appendChild(card);
+  }
+
+  /* Tab navigation: 5 sections; milestone detail is a Milestones sub-view. */
+  function showTab(name) {
+    var tabFor = { today: "today", milestones: "milestones", detail: "milestones",
+                   activity: "activity", growth: "growth", profile: "profile" };
+    document.querySelectorAll(".view").forEach(function (v) { v.classList.remove("active"); });
+    document.getElementById("view-" + name).classList.add("active");
+    document.querySelectorAll(".tabbar button").forEach(function (btn) {
+      btn.classList.toggle("active", btn.getAttribute("data-tab") === tabFor[name]);
+    });
+    document.getElementById("screen").scrollTop = 0;
+  }
+
+  renderMilestones();
+  renderSnapshot();
+</script>
+
+<script>
+(function(){
+  var IMG = {"bloomy-activity-language": "img/bloomy-activity-language.jpg", "bloomy-activity-motor": "img/bloomy-activity-motor.jpg", "bloomy-spot-sprout": "img/bloomy-spot-sprout.jpg", "bloomy-activity-play": "img/bloomy-activity-play.jpg", "bloomy-hero": "img/bloomy-hero.webp", "bloomy-activity-social": "img/bloomy-activity-social.jpg"};
+  function key(file){ return file.replace(/\.(jpg|png)$/, ""); }
+  function paint(el, file){
+    var k = key(file), url = IMG[k];
+    if (!el) return;
+    if (!url){ el.classList.remove("has-img"); el.style.backgroundImage = ""; return; }
+    el.classList.add("has-img");
+    if (k === "bloomy-spot-sprout") el.classList.add("contain");
+    el.style.backgroundImage = "url('" + url + "')";
+    el.setAttribute("aria-label", file.replace(/\.(jpg|png)$/, "").replace(/-/g, " "));
+  }
+  document.querySelectorAll(".imgph").forEach(function(el){
+    var f = el.querySelector(".ph-file");
+    var file = f ? f.textContent.trim() : "";
+    if (!file){
+      var cap = el.closest(".swap-row") && el.closest(".swap-row").querySelector(".caption");
+      if (cap) file = cap.textContent.split("·")[0].trim();
+    }
+    if (file) paint(el, file);
+  });
+  document.querySelectorAll(".swap-row .caption").forEach(function(c){
+    var file = c.textContent.split("·")[0].trim();
+    if (IMG[key(file)]) c.style.display = "none";
+  });
+  var hf = document.getElementById("act-hero-file");
+  if (hf) new MutationObserver(function(){ paint(document.getElementById("act-hero"), hf.textContent.trim()); })
+    .observe(hf, {childList:true, characterData:true, subtree:true});
+})();
+</script>
+</body>
+</html>
