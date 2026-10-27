@@ -23,6 +23,14 @@ Mọi ảnh nằm trong thư mục `img/` với tên cố định. Thay một �
 
 Muốn đổi cách cắt của một ảnh hoạt động thì sửa trường `pos` (ví dụ `"50% 40%"`) của hoạt động đó trong mảng `ACT` ở đầu khối `<script>`. Mỗi ảnh nên dưới 800 KB.
 
+## Màu
+
+Màu chủ đạo là tím `#4B14A5` (nút chữ trắng 10,8:1, tab chọn, link, dấu check), lime `#BEFA87` chỉ là nhấn phụ và luôn nằm TRONG một hình tím, như nhụy trong logo (nhụy hoa ở thanh trên, nhụy chấm "đang diễn ra", nền dấu check hoàn thành); không đặt chữ trắng lên lime, và lime không bao giờ là mảng nền tự đứng (trên nền kem chỉ 1,17:1). Chip lọc đang chọn là nền tím chữ trắng. Nền nhấn nhẹ tím rất nhạt `#E9E2F5` và `#F2EDF9`. Nền kem `#FBFAF7`, card `#F5EFE6`, chữ đen `#1D2733`, chữ thân `#434C59` giữ nguyên. Bốn màu miền (Vận động, Ngôn ngữ, Chơi, Xã hội) tách khỏi màu chủ đạo. Tất cả khai ở đầu thẻ `<style>` dưới dạng biến `--primary-deep`, `--accent`, `--tint`, `--tint2`, `--primary` (tím giữa, dùng cho đồ hoạ); đổi một biến là đổi cả app.
+
+## Chỗ cho minh hoạ mới
+
+Mọi ô minh hoạ trong card là một khung `.im` có kích thước cố định (141 x 93 ở Hôm nay, kỷ niệm mới và Hồ sơ; 88 x 88 ở Chọn hoạt động khác và Thử hoạt động này; 64 x 48 ở dòng kỷ niệm). Bộ minh hoạ phẳng mới chỉ cần lưu đúng tên tệp trong bảng trên; ảnh được cắt theo khung nên không cần sửa mã.
+
 ## Chữ
 
 Font Reddit Sans (giấy phép SIL OFL, kèm trong `fonts/OFL.txt`), tự host ba bộ ký tự `latin`, `latin-ext`, `vietnamese` trong `fonts/`, nên trang không gọi dịch vụ font bên ngoài. Thang chữ có mười vai (tiêu đề màn, lời chào, tít card, tít card nhỏ, thân, mô tả, nhãn, nhãn phụ, nút, tab), khai ở đầu thẻ `<style>` dưới dạng lớp `.t-tên-vai`; đổi một vai ở một chỗ là đổi cả app.
