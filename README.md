@@ -1,6 +1,6 @@
 # Bloomy, demo giao diện
 
-Bản demo tĩnh một tệp (v0.8.6), mười ba màn, bốn tab, tiếng Việt. Không có máy chủ, không lưu dữ liệu: mọi trạng thái (đổi bé, thêm hồ sơ về bé, đổi hoạt động, lưu kỷ niệm, đánh dấu cột mốc, chuỗi ngày, trình phát) chỉ nằm trong bộ nhớ trang và mất khi tải lại. Mọi số liệu về bé, chuỗi ngày, radar và bài Academy là SỐ MẪU minh hoạ, không phải dữ liệu thật.
+Bản demo tĩnh một tệp (v0.8.7), mười ba màn, bốn tab, tiếng Việt. Không có máy chủ, không lưu dữ liệu: mọi trạng thái (đổi bé, thêm hồ sơ về bé, đổi hoạt động, lưu kỷ niệm, đánh dấu cột mốc, chuỗi ngày, trình phát) chỉ nằm trong bộ nhớ trang và mất khi tải lại. Mọi số liệu về bé, chuỗi ngày, radar và bài Academy là SỐ MẪU minh hoạ, không phải dữ liệu thật.
 
 ## Mở thử
 
