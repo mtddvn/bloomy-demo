@@ -27,9 +27,17 @@ Muốn đổi cách cắt của một ảnh hoạt động thì sửa trường 
 
 Màu chủ đạo là tím `#4B14A5` (nút chữ trắng 10,8:1, tab chọn, link, dấu check), lime `#BEFA87` chỉ là nhấn phụ và luôn nằm TRONG một hình tím, như nhụy trong logo (nhụy hoa ở thanh trên, nhụy chấm "đang diễn ra", nền dấu check hoàn thành); không đặt chữ trắng lên lime, và lime không bao giờ là mảng nền tự đứng (trên nền kem chỉ 1,17:1). Chip lọc đang chọn là nền tím chữ trắng. Nền nhấn nhẹ tím rất nhạt `#E9E2F5` và `#F2EDF9`. Nền kem `#FBFAF7`, card `#F5EFE6`, chữ đen `#1D2733`, chữ thân `#434C59` giữ nguyên. Bốn màu miền (Vận động, Ngôn ngữ, Chơi, Xã hội) tách khỏi màu chủ đạo. Tất cả khai ở đầu thẻ `<style>` dưới dạng biến `--primary-deep`, `--accent`, `--tint`, `--tint2`, `--primary` (tím giữa, dùng cho đồ hoạ); đổi một biến là đổi cả app.
 
+## Minh hoạ phẳng trên thẻ cột mốc
+
+Thẻ "Đang diễn ra" ở Cột mốc dùng minh hoạ phẳng theo miền (Vận động, Ngôn ngữ, Chơi, Xã hội), đặt sát góc phải dưới và để thẻ cắt mép, theo kiểu thẻ khám phá. Bốn tệp nằm trong `img/illus/`: `illus-01-motor-alpha-640.png`, `illus-02-language-alpha-640.png`, `illus-03-play-alpha-640.png`, `illus-04-social-alpha-640.png` (nền trong suốt, vuông, hiển thị 112 x 112). Thay minh hoạ chỉ cần lưu đúng tên tệp.
+
 ## Chỗ cho minh hoạ mới
 
 Mọi ô minh hoạ trong card là một khung `.im` có kích thước cố định (141 x 93 ở Hôm nay, kỷ niệm mới và Hồ sơ; 88 x 88 ở Chọn hoạt động khác và Thử hoạt động này; 64 x 48 ở dòng kỷ niệm). Bộ minh hoạ phẳng mới chỉ cần lưu đúng tên tệp trong bảng trên; ảnh được cắt theo khung nên không cần sửa mã.
+
+## Biểu đồ
+
+Mọi biểu đồ vẽ bằng thư viện, không có SVG hay canvas vẽ tay: Apache ECharts 6.1.0, bản dựng riêng chỉ gồm đường, cột, điểm, lưới, chú giải, gợi ý khi chạm và bộ vẽ SVG (khoảng 580 KB, 200 KB khi nén). Tệp tự host ở `vendor/echarts-6.1.0.bloomy.min.js`, kèm giấy phép Apache-2.0 (`vendor/LICENSE-echarts`, `vendor/NOTICE-echarts`, `vendor/LICENSE-zrender`). Trang không gọi CDN, và chỉ nạp thư viện khi mở màn Lớn lên hoặc Chi tiết cột mốc. Có hai biểu đồ: cân nặng theo tháng (màn Lớn lên, số liệu minh hoạ nằm ở mảng `WEIGHT` trong khối `<script>`) và dải khoảng tuổi của cột mốc. Màu theo token (đường tím, lưới `#E4E7DD`, chữ trục Reddit Sans), có bảng số cho người đọc màn hình và nhãn `aria-label`. Dựng lại bản ECharts: `npm i echarts@6.1.0 esbuild`, rồi `esbuild tools/echarts-entry.js --bundle --minify --format=iife`.
 
 ## Chữ
 
