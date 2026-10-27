@@ -29,7 +29,11 @@ Màu chủ đạo là tím `#4B14A5` (nút chữ trắng 10,8:1, tab chọn, lin
 
 ## Minh hoạ phẳng trên thẻ cột mốc
 
-Thẻ "Đang diễn ra" ở Cột mốc dùng minh hoạ phẳng theo miền (Vận động, Ngôn ngữ, Chơi, Xã hội), đặt sát góc phải dưới và để thẻ cắt mép, theo kiểu thẻ khám phá. Bốn tệp nằm trong `img/illus/`: `illus-01-motor-alpha-640.png`, `illus-02-language-alpha-640.png`, `illus-03-play-alpha-640.png`, `illus-04-social-alpha-640.png` (nền trong suốt, vuông, hiển thị 112 x 112). Thay minh hoạ chỉ cần lưu đúng tên tệp.
+Các thẻ chủ đề ("Đang diễn ra" ở Cột mốc, Chọn hoạt động khác, Thử hoạt động này, và thẻ "Chưa có kỷ niệm nào" ở Lớn lên) dùng minh hoạ phẳng theo miền (Vận động, Ngôn ngữ, Chơi, Xã hội), đặt sát góc phải dưới và để thẻ cắt mép, theo kiểu thẻ khám phá. Năm tệp nằm trong `img/illus/`: `illus-01-motor-alpha-640.png`, `illus-02-language-alpha-640.png`, `illus-03-play-alpha-640.png`, `illus-04-social-alpha-640.png` và `illus-06-memory-alpha-640.png` (nền trong suốt, vuông, hiển thị 112 x 112). Thay minh hoạ chỉ cần lưu đúng tên tệp.
+
+## Minh hoạ phẳng trên thẻ cột mốc
+
+Các thẻ chủ đề ("Đang diễn ra" ở Cột mốc và thẻ "Chưa có kỷ niệm nào" ở Lớn lên) dùng minh hoạ phẳng theo miền; các thẻ hoạt động (Chọn hoạt động khác, Thử hoạt động này) giữ ảnh crayon của chính hoạt động đó (Vận động, Ngôn ngữ, Chơi, Xã hội), đặt sát góc phải dưới và để thẻ cắt mép, theo kiểu thẻ khám phá. Năm tệp nằm trong `img/illus/`: `illus-01-motor-alpha-640.png`, `illus-02-language-alpha-640.png`, `illus-03-play-alpha-640.png`, `illus-04-social-alpha-640.png` và `illus-06-memory-alpha-640.png` (nền trong suốt, vuông, hiển thị 112 x 112). Thay minh hoạ chỉ cần lưu đúng tên tệp.
 
 ## Chỗ cho minh hoạ mới
 
