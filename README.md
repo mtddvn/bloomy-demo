@@ -1,10 +1,14 @@
 # Bloomy, demo giao diện
 
-Bản demo tĩnh một tệp (v0.7.4), mười ba màn, bốn tab, tiếng Việt. Không có máy chủ, không lưu dữ liệu: mọi trạng thái (đổi bé, thêm hồ sơ về bé, đổi hoạt động, lưu kỷ niệm, đánh dấu cột mốc, chuỗi ngày, trình phát) chỉ nằm trong bộ nhớ trang và mất khi tải lại. Mọi số liệu về bé, chuỗi ngày, radar và bài Academy là SỐ MẪU minh hoạ, không phải dữ liệu thật.
+Bản demo tĩnh một tệp (v0.8.0), mười ba màn, bốn tab, tiếng Việt. Không có máy chủ, không lưu dữ liệu: mọi trạng thái (đổi bé, thêm hồ sơ về bé, đổi hoạt động, lưu kỷ niệm, đánh dấu cột mốc, chuỗi ngày, trình phát) chỉ nằm trong bộ nhớ trang và mất khi tải lại. Mọi số liệu về bé, chuỗi ngày, radar và bài Academy là SỐ MẪU minh hoạ, không phải dữ liệu thật.
 
 ## Mở thử
 
 Mở `index.html` qua một máy chủ tĩnh bất kỳ, ví dụ `python3 -m http.server` trong thư mục này rồi vào `http://127.0.0.1:8000/`. Các màn đi bằng đường dẫn băm: `#/home`, `#/activity`, `#/swap`, `#/milestones`, `#/milestone/2`, `#/growth`, `#/profile` (bảy màn của mốc `approved-2026-10-27`), và các màn mới `#/calendar` (chuỗi hoạt động), `#/skills` (năng lực sáu miền), `#/academy`, `#/article/a1`, `a2`, `a3`, `a5`, `a7`, `a9` (a1 bài đọc, a2 âm thanh, a3 video; mỗi chủ đề một bài).
+
+## Luồng mở app và khảo sát (v0.8.0)
+
+Mở link KHÔNG kèm đường dẫn băm thì vào Splash như mở app lần đầu: `#/splash` (tự chuyển sau 2 giây, hoặc chạm), `#/onboard/1` đến `#/onboard/3`, `#/login`, `#/addchild` (Thêm hồ sơ về bé), rồi `#/home`. Mọi đường dẫn băm cũ vẫn vào thẳng màn của nó. Khảo sát: `#/survey/0` (giới thiệu), `#/survey/1` đến `#/survey/N` (mỗi màn một câu, ba nút Đã làm được, Đang tập, Chưa thấy; N là 15 cho bé 18 đến 20 tháng và 13 cho bé 21 đến 26 tháng), `#/analyzing` (tự sang kết quả sau 2,4 giây; `#/analyzing/hold` đứng yên để xem), kết quả là `#/skills`. Card nhắc khảo sát hằng tuần nằm ở Hôm nay khi tới hạn (Mầm: có; Bơ: chưa tới hạn; bé mới: khảo sát đầu tiên). Câu hỏi bám danh sách mốc của CDC (Learn the Signs. Act Early., bản sửa 2022, bộ 18 và 24 tháng), do Bloomy diễn đạt lại bằng tiếng Việt và gom vào sáu miền; nguồn nằm trong mục Nguồn số liệu của màn Năng lực. Các nút Đăng nhập với Google và Đăng nhập với Apple theo hướng dẫn nhận diện của hai hãng (logo, màu, font); demo không đăng nhập thật. Thêm tệp `img/illus/illus-05-milestone-alpha-640.png` (hình phẳng cột mốc: onboarding khảo sát, card nhắc, màn Năng lực chưa có số liệu).
 
 ## Bốn tab
 
