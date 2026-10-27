@@ -1,6 +1,6 @@
 # Bloomy, demo giao diện
 
-Bản demo tĩnh một tệp (v0.8.5), mười ba màn, bốn tab, tiếng Việt. Không có máy chủ, không lưu dữ liệu: mọi trạng thái (đổi bé, thêm hồ sơ về bé, đổi hoạt động, lưu kỷ niệm, đánh dấu cột mốc, chuỗi ngày, trình phát) chỉ nằm trong bộ nhớ trang và mất khi tải lại. Mọi số liệu về bé, chuỗi ngày, radar và bài Academy là SỐ MẪU minh hoạ, không phải dữ liệu thật.
+Bản demo tĩnh một tệp (v0.8.6), mười ba màn, bốn tab, tiếng Việt. Không có máy chủ, không lưu dữ liệu: mọi trạng thái (đổi bé, thêm hồ sơ về bé, đổi hoạt động, lưu kỷ niệm, đánh dấu cột mốc, chuỗi ngày, trình phát) chỉ nằm trong bộ nhớ trang và mất khi tải lại. Mọi số liệu về bé, chuỗi ngày, radar và bài Academy là SỐ MẪU minh hoạ, không phải dữ liệu thật.
 
 ## Mở thử
 
@@ -35,7 +35,7 @@ Muốn đổi cách cắt của một ảnh hoạt động thì sửa trường 
 
 ## Màu
 
-Màu chủ đạo là tím `#4B14A5` (nút chữ trắng 10,8:1, tab chọn, link, dấu check), lime `#BEFA87` chỉ là nhấn phụ và luôn nằm TRONG một hình tím, như nhụy trong logo (nhụy hoa ở thanh trên, nhụy chấm "đang diễn ra", nền dấu check hoàn thành); không đặt chữ trắng lên lime, và lime không bao giờ là mảng nền tự đứng (trên nền kem chỉ 1,17:1). Chip lọc đang chọn là nền tím chữ trắng. Nền nhấn nhẹ tím rất nhạt `#E9E2F5` và `#F2EDF9`. Nền kem `#FBFAF7`, card `#F5EFE6`, chữ đen `#1D2733`, chữ thân `#434C59` giữ nguyên. Bốn màu miền (Vận động, Ngôn ngữ, Chơi, Xã hội) tách khỏi màu chủ đạo. Ba mức của sáu miền ở màn Năng lực có màu riêng: cam `#D4691F` (Cần chơi thêm), xám `#7C8593` (Đúng nhịp), xanh lá `#3F8526` (Đi trước; đo 3,8:1 trên nền card, còn lime của logo chỉ 1,02:1 nên không dùng), khai ở `--lv1`, `--lv2`, `--lv3`. Tất cả khai ở đầu thẻ `<style>` dưới dạng biến `--primary-deep`, `--accent`, `--tint`, `--tint2`, `--primary` (tím giữa, dùng cho đồ hoạ); đổi một biến là đổi cả app.
+Màu chủ đạo là tím `#4B14A5` (nút chữ trắng 10,8:1, tab chọn, link, dấu check), lime `#BEFA87` chỉ là nhấn phụ và luôn nằm TRONG một hình tím, như nhụy trong logo (nhụy hoa ở thanh trên, nhụy chấm "đang diễn ra", nền dấu check hoàn thành); không đặt chữ trắng lên lime, và lime không bao giờ là mảng nền tự đứng (trên nền kem chỉ 1,17:1). Chip lọc đang chọn là nền tím chữ trắng. Nền nhấn nhẹ tím rất nhạt `#E9E2F5` và `#F2EDF9`. Nền kem `#FBFAF7`, card `#F5EFE6`, chữ đen `#1D2733`, chữ thân `#434C59` giữ nguyên. Bốn màu miền (Vận động, Ngôn ngữ, Chơi, Xã hội) tách khỏi màu chủ đạo. Ba mức của sáu miền ở màn Năng lực có màu riêng, khai ở `--lv1`, `--lv2`, `--lv3`: cam đỏ `#D9480F` (Cần chơi thêm), xanh lá tươi `#00AD23` (Đúng nhịp; 2,5:1 trên nền card), tím tươi `#8B5CF6` (Đi trước; sáng hơn tím thương hiệu của đường radar). Với người mù màu đỏ lục, cam và xanh lá gần nhau về màu lẫn độ sáng, nên mức còn được đọc bằng vị trí đoạn sáng (trái, giữa, phải) và chú thích ở đáy card. Tất cả khai ở đầu thẻ `<style>` dưới dạng biến `--primary-deep`, `--accent`, `--tint`, `--tint2`, `--primary` (tím giữa, dùng cho đồ hoạ); đổi một biến là đổi cả app.
 
 ## Minh hoạ phẳng trên thẻ chủ đề
 
