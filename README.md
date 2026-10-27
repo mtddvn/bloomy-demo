@@ -1,14 +1,14 @@
 # Bloomy, demo giao diện
 
-Bản demo tĩnh một tệp (v0.7.1), mười ba màn, năm tab, tiếng Việt. Không có máy chủ, không lưu dữ liệu: mọi trạng thái (đổi bé, thêm bé, đổi hoạt động, lưu kỷ niệm, đánh dấu cột mốc, chuỗi ngày, trình phát) chỉ nằm trong bộ nhớ trang và mất khi tải lại. Mọi số liệu về bé, chuỗi ngày, radar và bài Academy là SỐ MẪU minh hoạ, không phải dữ liệu thật.
+Bản demo tĩnh một tệp (v0.7.4), mười ba màn, bốn tab, tiếng Việt. Không có máy chủ, không lưu dữ liệu: mọi trạng thái (đổi bé, thêm hồ sơ về bé, đổi hoạt động, lưu kỷ niệm, đánh dấu cột mốc, chuỗi ngày, trình phát) chỉ nằm trong bộ nhớ trang và mất khi tải lại. Mọi số liệu về bé, chuỗi ngày, radar và bài Academy là SỐ MẪU minh hoạ, không phải dữ liệu thật.
 
 ## Mở thử
 
 Mở `index.html` qua một máy chủ tĩnh bất kỳ, ví dụ `python3 -m http.server` trong thư mục này rồi vào `http://127.0.0.1:8000/`. Các màn đi bằng đường dẫn băm: `#/home`, `#/activity`, `#/swap`, `#/milestones`, `#/milestone/2`, `#/growth`, `#/profile` (bảy màn của mốc `approved-2026-10-27`), và các màn mới `#/calendar` (chuỗi hoạt động), `#/skills` (năng lực sáu miền), `#/academy`, `#/article/a1`, `a2`, `a3`, `a5`, `a7`, `a9` (a1 bài đọc, a2 âm thanh, a3 video; mỗi chủ đề một bài).
 
-## Năm tab
+## Bốn tab
 
-Hôm nay, Cột mốc, Academy, Lớn lên, Hồ sơ. Năm tab là NGOẠI LỆ có ghi của luật tối đa bốn trong `BLOOMY-DESIGN.md` (mục 2, `tab-rule`).
+Hôm nay, Phát triển, Academy, Hồ sơ. Phát triển gộp Cột mốc (`#/milestones`), Năng lực (`#/skills`, radar sáu miền) và Lớn lên (`#/growth`, số đo và kỷ niệm), chuyển bằng điều khiển phân đoạn ba ô ở đầu màn. Màn Năng lực có bản tên miền ALL CAPS ở `#/skills/a` để so sánh với bản chữ thường ở `#/skills`.
 
 ## Thay ảnh minh hoạ: chỉ đổi tệp
 
@@ -51,7 +51,7 @@ Mọi biểu đồ vẽ bằng thư viện, không có SVG hay canvas vẽ tay: 
 
 ## Hồ sơ nhiều bé
 
-Hai bé mẫu (Mầm 18 tháng, Bơ 24 tháng) khai ở mảng `KIDS` đầu khối `<script>` (sinh từ `tools/bl_ext.py`). Bộ chọn bé ở thanh trên Hôm nay và danh sách ở Hồ sơ dùng chung một sheet. Mỗi bé có tuổi, trạng thái cột mốc, chuỗi, radar, số đo và kỷ niệm riêng. Thêm bé: tên + tuổi từ 12 đến 26 tháng; bé mới bắt đầu ở trạng thái lần đầu (chuỗi "Bắt đầu chuỗi nào!", radar và số đo rỗng).
+Hai bé mẫu (Mầm 18 tháng, Bơ 24 tháng) khai ở mảng `KIDS` đầu khối `<script>` (sinh từ `tools/bl_ext.py`). Bộ chọn bé ở thanh trên Hôm nay và danh sách ở Hồ sơ dùng chung một sheet. Mỗi bé có tuổi, trạng thái cột mốc, chuỗi, radar, số đo và kỷ niệm riêng. Thêm hồ sơ về bé: tên + tuổi từ 12 đến 26 tháng; bé mới bắt đầu ở trạng thái lần đầu (chuỗi "Bắt đầu chuỗi nào!", radar và số đo rỗng).
 
 ## Chữ
 
