@@ -1,860 +1,372 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Bloomy — clickable prototype</title>
-<!--
-  Bloomy HTML prototype, Step 4. Standalone, single file.
-  Colours, type, components and demo content follow
-  Bloomy-brand-system.md exactly; contrast pairs are those measured
-  in CONTRAST.md (step 2). No images exist yet: every image slot is an
-  honest labelled placeholder (see IMAGE-PROMPTS.md for file names).
-  The only external assets are Google Fonts (Baloo 2 for the logo,
-  Nunito as its fallback); everything degrades to system fonts offline.
-  Icons are Lucide-style inline SVG only — no emoji as UI icons.
-  State is in-memory only: reloading the page resets the demo.
-  Step 4: the three swap activities are full activities (data-driven
-  detail view), and Growth has a real "This week" empty state that
-  fills when an activity is saved as a memory.
--->
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@700&family=Nunito:wght@800&display=swap" rel="stylesheet">
-<style>
-  /* Brand palette — Bloomy-brand-system.md §3. Every hex in this file
-     is from that palette (light + dark sets and the domain table). */
-  :root{
-    --bg:#FFFBF1; --surface:#FFFFFF; --surface2:#F3EFE3; --border:#DDD8C6;
-    --text:#1C4634; --secondary:#426052; --tertiary:#5A7264;
-    --primary:#1E5A40; --mint:#8FD0AE; --mint-tint:#DDF0E4;
-    --coral:#F08A76; --coral-text:#B84A3A;
-    --sprout:#2F7D55;
-    --btn-bg:#1E5A40; --btn-text:#FFFFFF; --link:#1E5A40;
-    --logo-word:#1C4634; --logo-stem:#1C4634; --logo-leaf:#2F7D55;
-    --page:#F3EFE3; --frame:#1C4634;
-  }
-  @media (prefers-color-scheme: dark){
-    :root{
-      --bg:#101D17; --surface:#182A21; --surface2:#20362B; --border:#335043;
-      --text:#F4F7F0; --secondary:#C2D4C8; --tertiary:#9DB4A7;
-      --primary:#7CC7A2; --mint-tint:#274435;
-      --coral-text:#F2A090;
-      --sprout:#7CC7A2;
-      --btn-bg:#7CC7A2; --btn-text:#10201A; --link:#8FD3B0;
-      --logo-word:#F4F7F0; --logo-stem:#F4F7F0; --logo-leaf:#7CC7A2;
-      --page:#101D17; --frame:#335043;
-    }
-  }
-  *{box-sizing:border-box}
-  html,body{overflow-x:hidden}
-  body{
-    margin:0; padding:24px 12px 40px; background:var(--page);
-    font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",system-ui,sans-serif;
-    color:var(--text); -webkit-font-smoothing:antialiased;
-  }
-  .hint{width:100%; max-width:390px; margin:0 auto 16px; font-size:14px; color:var(--secondary); line-height:1.5; text-align:center}
-  .hint b{color:var(--text)}
-  /* Phone frame: 390 px where it fits, fluid below. max-width keeps
-     frame + body padding inside the viewport (Dayline fix-round
-     lesson): no horizontal overflow at 430 px or 360 px. */
-  .phone{
-    width:390px; max-width:calc(100vw - 24px); height:844px; margin:0 auto;
-    background:var(--bg); border:10px solid var(--frame); border-radius:48px;
-    box-shadow:0 24px 64px rgba(28,70,52,.25); overflow:hidden;
-    display:flex; flex-direction:column; position:relative;
-  }
-  .notch{width:110px; height:26px; background:var(--frame); border-radius:0 0 18px 18px; margin:0 auto; flex:none}
-  .screen{flex:1; overflow-y:auto; padding:0 16px 16px}
-  .view{display:none}
-  .view.active{display:block}
-  /* Type scale — brand §3. Headings SF Rounded stack, tabular ages. */
-  .rounded{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Rounded","Segoe UI Rounded",system-ui,sans-serif}
-  h1{font-size:28px; font-weight:700; margin:0 0 4px; line-height:1.2}
-  h2{font-size:22px; font-weight:700; margin:0 0 8px; line-height:1.25}
-  h3{font-size:17px; font-weight:600; margin:0 0 8px}
-  .sub{font-size:16px; color:var(--secondary); margin:0 0 24px; line-height:1.5}
-  .section{margin-bottom:24px}
-  .section-head{display:flex; align-items:baseline; gap:12px; margin-bottom:8px}
-  .section-head h3{flex:1; margin:0}
-  .meta{font-size:13px; color:var(--secondary)}
-  .caption{font-size:12px; color:var(--tertiary)}
-  .body-text{font-size:16px; line-height:1.5; margin:0}
-  /* Logo lockup (bloomy-logo.svg, inline). Colours via variables so
-     dark mode uses the documented dark lockup, not an inversion. */
-  .logo-svg{display:block}
-  .logo-word{font-family:"Baloo 2","Nunito","SF Rounded","Arial Rounded MT Bold",sans-serif; font-weight:700; fill:var(--logo-word)}
-  .logo-leaf{fill:var(--logo-leaf)}
-  .logo-stem{stroke:var(--logo-stem)}
-  .spr-leaf{fill:none; stroke:var(--logo-leaf); stroke-width:5; stroke-linejoin:round}
-  .spr-stem{fill:none; stroke:var(--logo-stem); stroke-width:7; stroke-linecap:round}
-  /* Cards: radius 16, 1 pt border, no shadows (brand §3). */
-  .card{
-    background:var(--surface); border:1px solid var(--border);
-    border-radius:16px; padding:14px 16px; margin-bottom:8px;
-  }
-  .card.tint{background:var(--mint-tint)}
-  .card.flat{background:var(--surface2)}
-  /* Buttons: primary min height 48, radius 12 (brand §3). */
-  .btn{
-    display:flex; align-items:center; justify-content:center; gap:8px;
-    width:100%; min-height:48px; border:0; border-radius:12px;
-    background:var(--btn-bg); color:var(--btn-text);
-    font-size:16px; font-weight:600; font-family:inherit; cursor:pointer; padding:10px 14px;
-    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-  }
-  .btn.secondary{background:var(--mint-tint); color:var(--text)}
-  .btn.saved{background:var(--mint-tint); color:var(--text); cursor:default}
-  .btn-row{display:flex; gap:12px}
-  .btn-row .btn{flex:1}
-  .tertiary-row{display:flex; gap:8px; margin-top:4px}
-  .tbtn{
-    flex:1; min-height:44px; border:0; background:none; cursor:pointer;
-    color:var(--link); font-size:16px; font-weight:600; font-family:inherit;
-    display:flex; align-items:center; justify-content:center; gap:6px; padding:8px 4px;
-  }
-  /* Domain chips: tint bg + domain text colour + icon + label.
-     Never colour-only (brand §3 domain table). */
-  .chip{
-    display:inline-flex; align-items:center; gap:5px; border-radius:999px;
-    padding:4px 9px; font-size:13px; font-weight:600; line-height:1.2; white-space:nowrap;
-  }
-  .chip svg{width:14px; height:14px; flex:none}
-  .chip .dot{width:6px; height:6px; border-radius:50%; flex:none}
-  .chip-motor{background:#E0EDE0; color:#2F5D3A} .chip-motor .dot{background:#5E8F6A}
-  .chip-language{background:#E9E5F5; color:#4E417F} .chip-language .dot{background:#8373B0}
-  .chip-play{background:#F7ECD9; color:#7A5514} .chip-play .dot{background:#C98A3A}
-  .chip-social{background:#FBE7E1; color:#98402F} .chip-social .dot{background:#D96C5A}
-  @media (prefers-color-scheme: dark){
-    .chip-motor{background:#21382A; color:#A8CFB0}
-    .chip-language{background:#2C2A44; color:#C4BAEA}
-    .chip-play{background:#3A3220; color:#E4CD96}
-    .chip-social{background:#402A24; color:#F2B2A3}
-  }
-  /* Generic inline icon (Lucide-style stroke icons). */
-  .ic{width:20px; height:20px; flex:none; display:inline-block; vertical-align:middle}
-  .ic.sm{width:16px; height:16px}
-  .ic-done{color:var(--primary)} .ic-now{color:var(--sprout)} .ic-later{color:var(--secondary)}
-  /* Image placeholder: mint-tint panel, sprout outline, file name,
-     "Image to come" (IMAGE-PROMPTS.md placeholder rule; text colour is
-     secondary — a measured pair on mint tint in CONTRAST.md step 2:
-     5.83 light / 6.89 dark. Tertiary on mint tint was measured during
-     this build at 4.39 light and was NOT used — see README). */
-  .imgph{
-    background:var(--mint-tint); border-radius:12px; aspect-ratio:3/2;
-    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px;
-    padding:12px; text-align:center; width:100%;
-  }
-  .imgph svg{width:54px; height:52px}
-  .imgph .ph-label{font-size:13px; font-weight:600; color:var(--secondary); margin:0}
-  .imgph .ph-file{font-size:13px; color:var(--secondary); margin:0; overflow-wrap:anywhere}
-  .imgph.mini{aspect-ratio:auto; height:100%; padding:6px}
-  .imgph.mini svg{width:30px; height:29px}
-  /* Milestone rows (brand §3 component). */
-  .mrow{
-    display:flex; align-items:flex-start; gap:10px; width:100%; text-align:left;
-    background:var(--surface); border:1px solid var(--border); border-radius:16px;
-    padding:14px 16px; margin-bottom:8px; cursor:pointer; font-family:inherit; color:var(--text);
-  }
-  .mrow.now{border-left:3px solid var(--mint-tint)}
-  .mrow.done{background:var(--surface2); opacity:.7}
-  .mrow .m-main{flex:1; min-width:0}
-  .mrow .m-name{font-size:17px; font-weight:600; line-height:1.3}
-  .mrow .m-meta{display:flex; align-items:center; gap:8px; margin-top:6px; flex-wrap:wrap}
-  .mrow .m-status{display:flex; align-items:center; gap:6px; font-size:13px; font-weight:600; color:var(--secondary); margin-top:6px}
-  .mrow .chev{color:var(--tertiary); align-self:center}
-  .heart{color:var(--coral); display:inline-flex; align-items:center; gap:5px; font-size:13px; font-weight:600}
-  .heart .coral-label{color:var(--coral-text)}
-  /* Filter chips on Milestones. */
-  .filters{display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px}
-  .fchip{
-    display:inline-flex; align-items:center; gap:5px; border-radius:999px; cursor:pointer;
-    border:1px solid var(--border); background:var(--surface); color:var(--secondary);
-    font-size:13px; font-weight:600; font-family:inherit; min-height:44px; padding:8px 12px;
-  }
-  .fchip svg{width:14px; height:14px}
-  .fchip.selected{background:var(--btn-bg); color:var(--btn-text); border-color:var(--btn-bg)}
-  .group-label{font-size:13px; font-weight:600; color:var(--secondary); letter-spacing:.06em; text-transform:uppercase; margin:16px 0 8px}
-  /* Activity steps. */
-  .steps{margin:0; padding-left:22px}
-  .steps li{font-size:16px; line-height:1.5; margin-bottom:10px}
-  .steps li::marker{font-weight:700; color:var(--primary)}
-  /* Static rows (Growth / Profile). */
-  .srow{display:flex; align-items:center; gap:10px; padding:12px 0; border-bottom:1px solid var(--border)}
-  .srow:last-child{border-bottom:0}
-  .srow .s-label{flex:1; font-size:16px; min-width:0}
-  .srow .s-value{font-size:16px; color:var(--secondary); text-align:right}
-  .figure{font-size:24px; font-weight:700}
-  .note-line{font-size:13px; color:var(--secondary); line-height:1.5}
-  .saved-note{
-    display:none; background:var(--mint-tint); color:var(--text); border-radius:12px;
-    padding:12px 14px; font-size:16px; line-height:1.5; margin-bottom:8px;
-  }
-  .saved-note.show{display:block}
-  .swap-panel{display:none}
-  .swap-panel.show{display:block}
-  .swap-row{
-    display:flex; gap:12px; align-items:center; width:100%; text-align:left; cursor:pointer;
-    background:var(--surface); border:1px solid var(--border); border-radius:16px;
-    padding:10px 12px; margin-bottom:8px; font-family:inherit; color:var(--text);
-  }
-  .swap-row .sw-thumb{width:64px; height:44px; flex:none}
-  .swap-row .sw-main{flex:1; min-width:0}
-  .static-tag{
-    display:inline-block; font-size:12px; font-weight:600; color:var(--secondary);
-    border:1px solid var(--border); border-radius:999px; padding:3px 9px; margin-bottom:16px;
-  }
-  /* Tab bar: 5 sections, targets ≥44 px. */
-  .tabbar{display:flex; border-top:1px solid var(--border); background:var(--surface); flex:none}
-  .tabbar button{
-    flex:1; border:0; background:none; padding:9px 2px 11px; cursor:pointer; min-height:52px;
-    font-family:inherit; font-size:11px; color:var(--secondary);
-    display:flex; flex-direction:column; align-items:center; gap:3px;
-  }
-  .tabbar button.active{color:var(--link); font-weight:700}
-  .tabbar .ic{width:21px; height:21px}
-  .backbtn{
-    display:inline-flex; align-items:center; gap:4px; border:0; background:none; cursor:pointer;
-    color:var(--link); font-size:16px; font-weight:600; font-family:inherit;
-    min-height:44px; padding:8px 8px 8px 0; margin-top:8px;
-  }
-  .logo-head{display:flex; align-items:center; margin:14px 0 18px}
-  .logo-profile{display:flex; justify-content:center; margin:8px 0 20px}
+<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#FBFAF7"><meta name="robots" content="noindex"><meta name="generator" content="bloomy-demo-a 0.2.1"><title>Bloomy | Hôm nay</title><style>
+@font-face{font-family:'Reddit Sans';font-style:normal;font-weight:400 700;font-display:swap;src:url(fonts/RedditSans-vietnamese.woff2) format('woff2');unicode-range:U+0102-0103,U+0110-0111,U+0128-0129,U+0168-0169,U+01A0-01A1,U+01AF-01B0,U+0300-0301,U+0303-0304,U+0308-0309,U+0323,U+0329,U+1EA0-1EF9,U+20AB}
+@font-face{font-family:'Reddit Sans';font-style:normal;font-weight:400 700;font-display:swap;src:url(fonts/RedditSans-latin-ext.woff2) format('woff2');unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C4,U+2113,U+2C60-2C7F,U+A720-A7FF}
+@font-face{font-family:'Reddit Sans';font-style:normal;font-weight:400 700;font-display:swap;src:url(fonts/RedditSans-latin.woff2) format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
 
-  /* Real images (crayon storybook, approved 26/10): .imgph keeps its size, the image covers it. */
-  .imgph.has-img{background-size:cover; background-position:center; background-color:var(--cream, #FFF8EE)}
-  .imgph.has-img.contain{background-size:contain; background-repeat:no-repeat}
-  .imgph.has-img > *{display:none}
-</style>
-</head>
-<body>
-<p class="hint">Tap <b>Today's activity</b> to open the activity, tap a <b>milestone</b> for its detail, and try <b>Done</b> and <b>Shorter today</b> in the activity. Profile is a static preview; Growth's This week fills as you save. This demo keeps nothing after a reload.</p>
+:root{
+  --canvas:#FBFAF7; --surface-warm:#F7F1E7; --paper:#F5EFE6; --deep:#EFEADF;
+  --hairline:#E4E7DD; --hairline-warm:#E6E0D5;
+  --ink:#1D2733; --muted:#5B6472; --soft:#8A93A0;
+  --primary:#1F8F73; --primary-deep:#0E6B57; --tint:#DFF5EE; --tint2:#EFFAF6; --bright:#4FCFAC;
+  --coral:#FF8A6B; --coral-deep:#B25A35; --coral-tint:#FBEEE6;
+  --amber:#EBA92E; --sky:#7CC6E8;
+  
+  --coral-text:#9A4A28; --sky-tint:#E4F4FB; --sky-text:#1B6285; --amber-tint:#FBF1DA; --amber-text:#76500E;
+  --r-card:22px; --r-ctl:16px; --r-thumb:9px; --r-hero:22px;
+  --gutter:24px; --gap:32px;
+  --font-display:'Fraunces','Iowan Old Style',Georgia,serif;
+  --font-body:-apple-system,BlinkMacSystemFont,'SF Pro Text','Segoe UI',Roboto,Arial,sans-serif;
+}
 
-<!-- Lucide-style icon sprite (stroke icons, 24 grid). -->
-<svg width="0" height="0" style="position:absolute" aria-hidden="true">
-  <defs>
-    <symbol id="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></symbol>
-    <symbol id="i-list" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 17 2 2 4-4"/><path d="m3 7 2 2 4-4"/><path d="M13 6h8"/><path d="M13 12h8"/><path d="M13 18h8"/></symbol>
-    <symbol id="i-blocks" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="8.5" y="14" width="7" height="7" rx="1.5"/><path d="M10 6.5h4"/><path d="M12 10v4"/></symbol>
-    <symbol id="i-growth" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></symbol>
-    <symbol id="i-user" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5"/></symbol>
-    <symbol id="i-footprints" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M6.2 3.2c1.9-.3 3.4 1.6 3.7 4.2.3 2.4-.6 4.4-2.2 4.7-1.7.3-3.2-1.4-3.5-3.9C3.9 5.6 4.5 3.5 6.2 3.2Z"/><circle cx="4.1" cy="14.6" r="1.15"/><circle cx="6.9" cy="15.1" r="1.05"/><circle cx="9.2" cy="14.2" r=".95"/><path d="M16.9 9.4c1.9-.3 3.4 1.6 3.7 4.2.3 2.4-.6 4.4-2.2 4.7-1.7.3-3.2-1.4-3.5-3.9-.3-2.6.3-4.7 2-5Z" transform="translate(-1.8 1.6)"/></symbol>
-    <symbol id="i-messages" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 9a2 2 0 0 1-2 2H6l-4 4V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v5Z"/><path d="M18 9h2a2 2 0 0 1 2 2v11l-4-4h-6a2 2 0 0 1-2-2v-1"/></symbol>
-    <symbol id="i-users" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></symbol>
-    <symbol id="i-check-circle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m8.5 12.5 2.5 2.5 5-5.5"/></symbol>
-    <symbol id="i-circle-dot" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none"/></symbol>
-    <symbol id="i-circle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/></symbol>
-    <symbol id="i-heart" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.29 1.51 4.04 3 5.5l7 7Z"/></symbol>
-    <symbol id="i-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v8"/><path d="M8 12h8"/></symbol>
-    <symbol id="i-chev-r" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></symbol>
-    <symbol id="i-chev-l" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></symbol>
-    <symbol id="i-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></symbol>
-    <symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></symbol>
-  </defs>
-</svg>
+:root{--body:#434C59; 
+  --gutter:24px; --card-l:48px; --card-r:16px; --gap-tl:24px; --gap-row:16px; --tab-h:96px; --col:430px; --nav-h:56px; --cta-h:48px;
+  --focus:#0E6B57}
+:root{--font:'Reddit Sans',-apple-system,BlinkMacSystemFont,'SF Pro Text','Segoe UI',Roboto,Arial,sans-serif;}
+.t-title{font:700 23.5px/29px var(--font);letter-spacing:-0.032em;color:var(--ink)}
+.t-greet{font:400 15.5px/20px var(--font);letter-spacing:-0.001em;color:var(--ink)}
+.t-card{font:700 19.5px/24px var(--font);letter-spacing:-0.030em;color:var(--ink)}
+.t-cardsm{font:700 15.5px/19px var(--font);letter-spacing:-0.019em;color:var(--ink)}
+.t-body{font:400 15.5px/24px var(--font);letter-spacing:+0.004em;color:var(--body)}
+.t-desc{font:400 13.5px/21px var(--font);letter-spacing:+0.020em;color:var(--body)}
+.t-meta{font:400 12px/16px var(--font);letter-spacing:-0.001em;color:var(--body)}
+.t-label{font:400 13.5px/20px var(--font);letter-spacing:+0.007em;color:var(--body)}
+.t-btn{font:700 15.5px/20px var(--font);letter-spacing:+0.001em;color:#fff}
+.t-tab{font:400 12px/14px var(--font);letter-spacing:+0.000em;color:var(--muted)}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{-webkit-text-size-adjust:100%;scroll-behavior:auto}
+body{margin:0;background:var(--deep);color:var(--ink);font-family:var(--font);font-synthesis:none;-webkit-font-smoothing:antialiased;min-height:100vh}
+img{display:block;max-width:100%}
+a{color:inherit;text-decoration:none}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cursor:pointer;text-align:inherit}
+h1,h2,h3,p,ol,ul{margin:0;padding:0}
+ol,ul{list-style:none}
+h1,h2,h3{text-wrap:balance}
+:focus-visible{outline:3px solid var(--focus);outline-offset:2px;border-radius:8px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.app{position:relative;width:100%;max-width:var(--col);min-height:100vh;margin:0 auto;background:var(--canvas)}
+@media (min-width:480px){.app{box-shadow:0 0 0 1px var(--hairline)}}
+.scr{display:none;padding-bottom:calc(var(--tab-h) + 24px)}
+.scr.on{display:block}
+.scr.cta{padding-bottom:calc(var(--cta-h) + 25px + 28px + 24px)}
+.scr.plain{padding-bottom:48px}
+h1:focus,h2:focus{outline:none}
 
-<div class="phone" id="phone">
-  <div class="notch"></div>
-  <div class="screen" id="screen">
 
-    <!-- ================= TODAY (tappable) ================= -->
-    <section class="view active" id="view-today">
-      <div class="logo-head">
-        <svg class="logo-svg" width="132" height="56" viewBox="0 0 480 205" role="img" aria-label="bloomy"><path class="logo-leaf" d="M197,66 C168,68 148,52 144,26 C172,26 192,40 197,66 Z"/><path class="logo-leaf" d="M199,54 C224,50 242,34 244,8 C218,12 202,28 199,54 Z"/><path class="logo-stem" d="M197,108 C197,88 197,72 198,54" fill="none" stroke-width="7" stroke-linecap="round"/><text class="logo-word" x="24" y="170" font-size="118" letter-spacing="-2">bloomy</text></svg>
-      </div>
-      <h1 class="rounded">Mia · 18 months</h1>
-      <p class="sub">A calm look at Mia's month — one small thing at a time.</p>
+.topbar{height:var(--nav-h);padding:0 var(--gutter);display:flex;align-items:center;justify-content:space-between}
+.brand{display:flex;align-items:center;color:var(--primary-deep)}
+.avatar{position:relative;width:40px;height:40px;border-radius:50%;background:var(--tint);color:var(--primary-deep);display:grid;place-items:center;font:700 16px/1 var(--font)}
+.avatar::after{content:"";position:absolute;inset:-2px}
+.navbar{height:var(--nav-h);padding:0 var(--gutter);display:flex;align-items:center;justify-content:space-between}
+.round{position:relative;width:44px;height:44px;flex:none;border-radius:50%;background:var(--paper);color:var(--ink);display:grid;place-items:center;box-shadow:0 2px 0 var(--hairline-warm)}
+.round svg{width:22px;height:22px}
 
-      <div class="section">
-        <div class="imgph" role="img" aria-label="Placeholder for bloomy-hero.jpg — image to come">
-          <svg viewBox="135 0 120 115" aria-hidden="true"><path class="spr-leaf" d="M197,66 C168,68 148,52 144,26 C172,26 192,40 197,66 Z"/><path class="spr-leaf" d="M199,54 C224,50 242,34 244,8 C218,12 202,28 199,54 Z"/><path class="spr-stem" d="M197,108 C197,88 197,72 198,54"/></svg>
-          <p class="ph-label">Image to come</p>
-          <p class="ph-file">bloomy-hero.jpg</p>
-        </div>
-      </div>
 
-      <div class="section">
-        <div class="card tint">
-          <p class="meta" style="margin:0 0 6px; font-weight:600">THIS MONTH · MONTH 18</p>
-          <h2 class="rounded">Words, steps, and taking turns</h2>
-          <p class="body-text">This month, first words often multiply, walking turns into climbing, and play starts to include you. Some children say twenty words now; some say four and point beautifully — both are busy learning to talk.</p>
-        </div>
-      </div>
+svg.ic{width:24px;height:24px;flex:none;display:block}
+svg.ic20{width:20px;height:20px;flex:none;display:block}
+svg.ic16{width:16px;height:16px;flex:none;display:block}
 
-      <div class="section">
-        <div class="section-head"><h3>Today's activity</h3></div>
-        <div class="card">
-          <div class="imgph" role="img" aria-label="Placeholder for bloomy-activity-play.jpg — image to come">
-            <svg viewBox="135 0 120 115" aria-hidden="true"><path class="spr-leaf" d="M197,66 C168,68 148,52 144,26 C172,26 192,40 197,66 Z"/><path class="spr-leaf" d="M199,54 C224,50 242,34 244,8 C218,12 202,28 199,54 Z"/><path class="spr-stem" d="M197,108 C197,88 197,72 198,54"/></svg>
-            <p class="ph-label">Image to come</p>
-            <p class="ph-file">bloomy-activity-play.jpg</p>
-          </div>
-          <p class="meta" style="display:flex; align-items:center; gap:8px; margin:12px 0 6px">
-            <span class="chip chip-play"><svg><use href="#i-blocks"/></svg><span class="dot"></span>Play</span>
-            <span style="display:inline-flex; align-items:center; gap:4px"><svg class="ic sm"><use href="#i-clock"/></svg>10 minutes</span>
-          </p>
-          <h3>Stack, wait, topple</h3>
-          <p class="body-text">Stacking builds careful hands, a little patience, and the joy of knocking things down on purpose.</p>
-          <div style="height:12px"></div>
-          <button type="button" class="btn" onclick="openActivity(false,false)">See how</button>
-          <div class="tertiary-row">
-            <button type="button" class="tbtn" onclick="openActivity(true,false)">Shorter today</button>
-            <button type="button" class="tbtn" onclick="openActivity(false,true)">Swap</button>
-          </div>
-        </div>
-      </div>
 
-      <div class="section">
-        <div class="section-head">
-          <h3>Milestones right now</h3>
-          <button type="button" class="tbtn" style="flex:none" onclick="showTab('milestones')">See all</button>
-        </div>
-        <div id="snapshot"></div>
-      </div>
+.head{padding:8px var(--gutter) 0}
+.head .t-title{margin-top:2px}
+.head .t-body{margin-top:8px}
+.head.tight{padding-top:20px}
 
-      <div class="section">
-        <div class="card">
-          <p style="margin:0 0 6px"><span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:var(--coral)" aria-hidden="true"></span></p>
-          <h3>Did something small happen today?</h3>
-          <p class="body-text">Nothing to add is fine too. Quiet days count.</p>
-          <div style="height:12px"></div>
-          <button type="button" class="btn secondary" onclick="showTab('growth')"><svg class="ic sm"><use href="#i-plus"/></svg>Add a memory</button>
-        </div>
-      </div>
-    </section>
 
-    <!-- ================= MILESTONES (tappable) ================= -->
-    <section class="view" id="view-milestones">
-      <div style="height:16px"></div>
-      <h1 class="rounded">Milestones</h1>
-      <p class="sub">Things to watch for as Mia grows — ranges, not deadlines.</p>
-      <div class="filters" id="filters">
-        <button type="button" class="fchip selected" data-filter="All" onclick="setFilter('All')">All</button>
-        <button type="button" class="fchip" data-filter="Motor" onclick="setFilter('Motor')"><svg><use href="#i-footprints"/></svg>Motor</button>
-        <button type="button" class="fchip" data-filter="Language" onclick="setFilter('Language')"><svg><use href="#i-messages"/></svg>Language</button>
-        <button type="button" class="fchip" data-filter="Play" onclick="setFilter('Play')"><svg><use href="#i-blocks"/></svg>Play</button>
-        <button type="button" class="fchip" data-filter="Social" onclick="setFilter('Social')"><svg><use href="#i-users"/></svg>Social</button>
-      </div>
-      <p class="meta" id="ms-count"></p>
-      <div id="ms-groups"></div>
-      <div class="card flat" style="margin-top:16px">
-        <p class="body-text">Milestones are things to watch for, not tests to pass. Every child arrives in their own order.</p>
-      </div>
-    </section>
+.chip{display:inline-flex;align-items:center;gap:6px;height:20px;white-space:nowrap}
+.chip svg{width:16px;height:16px;flex:none}
+.d-motor{color:var(--primary-deep)}
+.d-lang{color:var(--coral-text)}
+.d-play{color:var(--sky-text)}
+.d-social{color:var(--amber-text)}
+.meta-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.tm{display:inline-flex;align-items:center;gap:4px}
+.tm svg{width:14px;height:14px}
 
-    <!-- ================= MILESTONE DETAIL (tappable) ================= -->
-    <section class="view" id="view-detail">
-      <button type="button" class="backbtn" onclick="showTab('milestones')"><svg class="ic sm"><use href="#i-chev-l"/></svg>Milestones</button>
-      <h2 class="rounded" id="d-name"></h2>
-      <p class="m-status" id="d-status" style="display:flex; align-items:center; gap:6px; font-size:13px; font-weight:600; color:var(--secondary)"></p>
-      <p style="display:flex; align-items:center; gap:8px; flex-wrap:wrap">
-        <span id="d-chip"></span>
-        <span class="meta" id="d-note"></span>
-      </p>
-      <div class="card">
-        <h3>What it can look like</h3>
-        <p class="body-text" id="d-looks"></p>
-      </div>
-      <div class="card">
-        <h3>The wide normal range</h3>
-        <p class="body-text" id="d-range"></p>
-      </div>
-      <div class="card flat">
-        <p class="body-text">Children develop at very different speeds. If you're ever worried, your paediatrician knows Mia — Bloomy doesn't, and a check is always worth it.</p>
-      </div>
-      <p class="saved-note" id="d-saw-note">Saved — this milestone now shows as Done. Lovely.</p>
-      <button type="button" class="btn" id="d-saw" onclick="sawThis()">I saw this</button>
-      <div style="height:8px"></div>
-      <button type="button" class="btn secondary" onclick="showTab('growth')">Add a memory of this</button>
-    </section>
 
-    <!-- ================= ACTIVITY DETAIL (tappable) ================= -->
-    <section class="view" id="view-activity">
-      <div style="height:16px"></div>
-      <h1 class="rounded">Today's activity</h1>
-      <p class="sub">One activity a day is plenty.</p>
-      <div class="card">
-        <div class="imgph" id="act-hero" role="img" aria-label="Placeholder for bloomy-activity-play.jpg — image to come">
-          <svg viewBox="135 0 120 115" aria-hidden="true"><path class="spr-leaf" d="M197,66 C168,68 148,52 144,26 C172,26 192,40 197,66 Z"/><path class="spr-leaf" d="M199,54 C224,50 242,34 244,8 C218,12 202,28 199,54 Z"/><path class="spr-stem" d="M197,108 C197,88 197,72 198,54"/></svg>
-          <p class="ph-label">Image to come</p>
-          <p class="ph-file" id="act-hero-file">bloomy-activity-play.jpg</p>
-        </div>
-        <p class="meta" style="display:flex; align-items:center; gap:8px; margin:12px 0 6px">
-          <span id="act-chip"><span class="chip chip-play"><svg><use href="#i-blocks"/></svg><span class="dot"></span>Play</span></span>
-          <span style="display:inline-flex; align-items:center; gap:4px"><svg class="ic sm"><use href="#i-clock"/></svg><span id="act-time">10 minutes</span></span>
-        </p>
-        <h2 class="rounded" id="act-title">Stack, wait, topple</h2>
-        <p class="body-text" id="act-needs">You'll need: 4–6 blocks or stacking cups, and a floor you don't mind being noisy</p>
-      </div>
+.tl{margin:var(--gap-tl) var(--card-r) 0 var(--card-l)}
+.tl-i{position:relative;margin:0 0 var(--gap-tl) 0}
+.tl-i:last-child{margin-bottom:0}
+.dot{position:absolute;left:-34px;top:50%;margin-top:-10px;width:20px;height:20px;border-radius:50%;background:var(--canvas);border:2px solid var(--soft);box-shadow:0 0 0 4px var(--canvas);display:grid;place-items:center}
+.tl-i.now .dot{border-color:var(--primary-deep);background:var(--primary-deep)}
+.tl-i.now .dot::after{content:"";width:6px;height:6px;border-radius:50%;background:#fff}
+.card{background:var(--paper);border-radius:var(--r-card);box-shadow:0 2px 0 var(--hairline-warm)}
+.tcard{position:relative;display:grid;grid-template-columns:minmax(0,1fr) 141px;column-gap:12px;padding:12px 12px 12px 16px;min-height:150px}
+.tcard .tx{display:flex;flex-direction:column;min-width:0}
+.tcard .t-card{margin:2px 0 8px}
+.tcard .eyebrow{margin:0 0 2px}
+.go-title::after{content:"";position:absolute;inset:0;border-radius:var(--r-card)}
+.more-wrap{margin-top:auto;padding-top:8px;position:relative;z-index:1}
+.more{position:relative;width:32px;height:32px;border-radius:50%;background:var(--canvas);box-shadow:0 1px 0 var(--hairline-warm);display:grid;place-items:center}
+.more::after{content:"";position:absolute;inset:-6px}
+.more svg{width:18px;height:18px}
+.frow{display:block;padding:6px 0;min-height:44px}
+.quiet{padding:32px var(--gutter) 0}
 
-      <p class="saved-note" id="act-done-note">Saved to Mia's memories — you can find it in Growth, under This week.</p>
 
-      <div class="card" id="act-full">
-        <h3>How to play</h3>
-        <ol class="steps" id="act-steps">
-          <li>Sit facing Mia and stack two blocks slowly, so she can watch your hands.</li>
-          <li>Pause with your hand hovering — let her knock it down or add one herself.</li>
-          <li>Rebuild together, counting out loud, “one… two…”.</li>
-          <li>When she stacks two, stop and celebrate that, not the tower's height.</li>
-          <li>Finish by toppling the tallest tower together, on purpose, with a countdown.</li>
-        </ol>
-      </div>
+.grp{padding:24px var(--gutter) 12px}
+.rows{padding:0 var(--gutter)}
+.row{display:grid;grid-template-columns:minmax(0,1fr) 20px;column-gap:12px;align-items:center;padding:14px 16px;margin-bottom:var(--gap-row);min-height:72px;width:100%}
+.row .meta-row{margin-top:8px}
+.row .chev{color:var(--soft)}
+.filters{display:flex;flex-wrap:wrap;gap:8px;padding:16px var(--gutter) 0}
+.fchip{position:relative;height:36px;padding:0 14px;border-radius:999px;border:1px solid var(--hairline-warm);background:var(--canvas);display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.fchip::after{content:"";position:absolute;inset:-4px -2px}
+.fchip svg{width:16px;height:16px;flex:none}
+.fchip.on{background:var(--ink);border-color:var(--ink);color:var(--canvas)}
+.fchip.on{color:var(--canvas)}
 
-      <div class="card tint" id="act-shorter" style="display:none">
-        <h3>Shorter today · 5 minutes</h3>
-        <p class="body-text" id="act-shorter-body">Skip the counting. Stack, wait for her hands, topple — three towers is a whole game.</p>
-      </div>
 
-      <div class="card tint">
-        <h3>When it clicks</h3>
-        <p class="body-text" id="act-clicks">Trying looks like Mia stacking two, watching them fall, and handing you the next block. That's the game.</p>
-      </div>
+.pad{padding:0 var(--gutter)}
+.pic{width:100%;aspect-ratio:3/2;border-radius:var(--r-card);object-fit:cover}
+.steps{display:grid;gap:var(--gap-row);margin-top:14px}
+.steps li{display:grid;grid-template-columns:32px minmax(0,1fr);column-gap:12px;padding:14px 16px;align-items:start}
+.steps .n{width:32px;height:32px;border-radius:50%;background:var(--tint);color:var(--primary-deep);display:grid;place-items:center;font:700 16px/1 var(--font)}
+.steps p{padding-top:4px}
+.short{padding:16px;margin-top:14px;background:var(--tint2);box-shadow:none}
+.links{display:flex;flex-wrap:wrap;gap:0 16px;margin-top:8px}
+.link{display:inline-flex;align-items:center;gap:6px;min-height:44px}
+.link svg{width:18px;height:18px}
 
-      <button type="button" class="btn" id="act-done-btn" onclick="activityDone()">Done — save as memory</button>
-      <div class="tertiary-row">
-        <button type="button" class="tbtn" id="act-shorter-btn" onclick="toggleShorter()">Shorter today</button>
-        <button type="button" class="tbtn" id="act-swap-btn" onclick="toggleSwap()">Swap for another</button>
-      </div>
-      <button type="button" class="tbtn" id="act-back" style="display:none" onclick="backToToday()">Back to today's pick: Stack, wait, topple</button>
 
-      <div class="swap-panel" id="act-swap">
-        <h3 style="margin-top:16px">Swap for another</h3>
-        <button type="button" class="swap-row" onclick="pickActivity('motor')">
-          <span class="sw-thumb"><span class="imgph mini"><svg viewBox="135 0 120 115" aria-hidden="true"><path class="spr-leaf" d="M197,66 C168,68 148,52 144,26 C172,26 192,40 197,66 Z"/><path class="spr-leaf" d="M199,54 C224,50 242,34 244,8 C218,12 202,28 199,54 Z"/><path class="spr-stem" d="M197,108 C197,88 197,72 198,54"/></svg></span></span>
-          <span class="sw-main">
-            <span class="chip chip-motor"><svg><use href="#i-footprints"/></svg><span class="dot"></span>Motor</span>
-            <span class="meta" style="display:block; margin-top:5px">Push and parade — a lap of the room with a push-toy</span>
-            <span class="caption" style="display:block">bloomy-activity-motor.jpg · Image to come</span>
-          </span>
-        </button>
-        <button type="button" class="swap-row" onclick="pickActivity('language')">
-          <span class="sw-thumb"><span class="imgph mini"><svg viewBox="135 0 120 115" aria-hidden="true"><path class="spr-leaf" d="M197,66 C168,68 148,52 144,26 C172,26 192,40 197,66 Z"/><path class="spr-leaf" d="M199,54 C224,50 242,34 244,8 C218,12 202,28 199,54 Z"/><path class="spr-stem" d="M197,108 C197,88 197,72 198,54"/></svg></span></span>
-          <span class="sw-main">
-            <span class="chip chip-language"><svg><use href="#i-messages"/></svg><span class="dot"></span>Language</span>
-            <span class="meta" style="display:block; margin-top:5px">Name it, wait, cheer — point, pause, and name the pictures</span>
-            <span class="caption" style="display:block">bloomy-activity-language.jpg · Image to come</span>
-          </span>
-        </button>
-        <button type="button" class="swap-row" onclick="pickActivity('social')">
-          <span class="sw-thumb"><span class="imgph mini"><svg viewBox="135 0 120 115" aria-hidden="true"><path class="spr-leaf" d="M197,66 C168,68 148,52 144,26 C172,26 192,40 197,66 Z"/><path class="spr-leaf" d="M199,54 C224,50 242,34 244,8 C218,12 202,28 199,54 Z"/><path class="spr-stem" d="M197,108 C197,88 197,72 198,54"/></svg></span></span>
-          <span class="sw-main">
-            <span class="chip chip-social"><svg><use href="#i-users"/></svg><span class="dot"></span>Social</span>
-            <span class="meta" style="display:block; margin-top:5px">Tea for two bears — a pretend tea party, taking turns</span>
-            <span class="caption" style="display:block">bloomy-activity-social.jpg · Image to come</span>
-          </span>
-        </button>
-      </div>
-    </section>
+.btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;height:48px;border-radius:var(--r-ctl);background:var(--primary-deep);box-shadow:0 2px 0 rgba(14,107,87,.35)}
+.btn.soft{background:var(--tint);color:var(--primary-deep);height:44px;box-shadow:none;font-size:15.5px}
+.btn[disabled]{background:var(--tint);color:var(--primary-deep);box-shadow:none;cursor:default}
+.ctabar{position:fixed;left:50%;transform:translateX(-50%);bottom:0;width:100%;max-width:var(--col);padding:28px var(--gutter) 25px;background:linear-gradient(to bottom,rgba(251,250,247,0),var(--canvas) 45%);z-index:20;pointer-events:none}
+.ctabar .btn{pointer-events:auto}
 
-    <!-- ================= GROWTH / MEMORIES (static) ================= -->
-    <section class="view" id="view-growth">
-      <div style="height:16px"></div>
-      <h1 class="rounded">Growth &amp; memories</h1>
-      <p class="sub">The small things, kept.</p>
-      <span class="static-tag">Mostly static preview — This week fills as you save</span>
-      <button type="button" class="btn secondary" onclick="document.getElementById('growth-note').classList.add('show')"><svg class="ic sm"><use href="#i-plus"/></svg>Add a memory</button>
-      <div style="height:8px"></div>
-      <p class="saved-note" id="growth-note">In the full app this opens the memory form. The demo keeps memories as a static timeline, except for This week below, which fills when you save an activity.</p>
 
-      <div class="section-head" style="margin-top:24px"><h3>This week</h3></div>
-      <div id="memory-week">
-        <div class="card" id="week-empty">
-          <div class="imgph" role="img" aria-label="Placeholder for bloomy-spot-sprout.png — image to come">
-            <svg viewBox="135 0 120 115" aria-hidden="true"><path class="spr-leaf" d="M197,66 C168,68 148,52 144,26 C172,26 192,40 197,66 Z"/><path class="spr-leaf" d="M199,54 C224,50 242,34 244,8 C218,12 202,28 199,54 Z"/><path class="spr-stem" d="M197,108 C197,88 197,72 198,54"/></svg>
-            <p class="ph-label">Image to come</p>
-            <p class="ph-file">bloomy-spot-sprout.png</p>
-          </div>
-          <h3 style="margin-top:12px">Nothing saved this week yet</h3>
-          <p class="body-text">No memories saved this week yet — today's activity can become the first.</p>
-        </div>
-      </div>
+.tabbar{position:fixed;left:50%;transform:translateX(-50%);bottom:0;width:100%;max-width:var(--col);height:var(--tab-h);padding:8px 8px 34px;display:grid;grid-template-columns:repeat(4,1fr);background:var(--canvas);border-top:1px solid var(--hairline);z-index:30}
+.tabbar::before{content:"";position:absolute;left:0;right:0;bottom:100%;height:32px;background:linear-gradient(to bottom,rgba(251,250,247,0),var(--canvas));pointer-events:none}
+.tab{color:var(--muted);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-height:54px}
+.tab svg{width:24px;height:24px}
+.tab[aria-current="page"]{color:var(--primary-deep)}
+.tab[aria-current="page"] .t-tab{color:var(--primary-deep)}
+body.notab .tabbar{display:none}
+.swaps li + li{margin-top:var(--gap-row)}
+.swap-card{display:grid;grid-template-columns:minmax(0,1fr) 88px;column-gap:12px;align-items:center;width:100%;padding:12px 12px 12px 16px;min-height:109px;text-align:left}
+.swap-card .thumb{width:88px;height:88px;border-radius:var(--r-thumb);object-fit:cover}
 
-      <div class="section-head" style="margin-top:24px"><h3>Memories</h3></div>
-      <div id="memory-list">
-        <div class="card">
-          <div class="imgph" role="img" aria-label="Placeholder for bloomy-activity-play.jpg — image to come">
-            <svg viewBox="135 0 120 115" aria-hidden="true"><path class="spr-leaf" d="M197,66 C168,68 148,52 144,26 C172,26 192,40 197,66 Z"/><path class="spr-leaf" d="M199,54 C224,50 242,34 244,8 C218,12 202,28 199,54 Z"/><path class="spr-stem" d="M197,108 C197,88 197,72 198,54"/></svg>
-            <p class="ph-label">Image to come</p>
-            <p class="ph-file">bloomy-activity-play.jpg</p>
-          </div>
-          <p style="display:flex; align-items:center; gap:8px; margin:12px 0 6px">
-            <span class="heart"><svg class="ic sm"><use href="#i-heart"/></svg><span class="coral-label">Saved memory</span></span>
-            <span class="chip chip-play"><svg><use href="#i-blocks"/></svg><span class="dot"></span>Play</span>
-          </p>
-          <p class="body-text">First tower of three, 12 Oct — she clapped before it fell.</p>
-        </div>
-        <div class="card">
-          <p style="display:flex; align-items:center; gap:8px; margin:0 0 6px">
-            <span class="heart"><svg class="ic sm"><use href="#i-heart"/></svg><span class="coral-label">Saved memory</span></span>
-            <span class="chip chip-language"><svg><use href="#i-messages"/></svg><span class="dot"></span>Language</span>
-          </p>
-          <p class="body-text">Said ‘more juice’ at breakfast, 21 Oct.</p>
-        </div>
-      </div>
 
-      <div class="section-head" style="margin-top:24px"><h3>Growth</h3></div>
-      <div class="card">
-        <div style="display:flex; gap:16px">
-          <div style="flex:1">
-            <p class="meta" style="margin:0 0 2px">Weight</p>
-            <p style="margin:0"><span class="figure rounded">10.2 kg</span></p>
-          </div>
-          <div style="flex:1">
-            <p class="meta" style="margin:0 0 2px">Length</p>
-            <p style="margin:0"><span class="figure rounded">81.5 cm</span></p>
-          </div>
-        </div>
-        <p class="caption" style="margin:8px 0 0">Demo figures — Mia's real measurements go here in the full app.</p>
-        <svg viewBox="0 0 320 90" width="100%" style="display:block; margin-top:12px" role="img" aria-label="A simple line showing Mia's growth rising gently over time">
-          <polyline points="8,70 70,62 135,52 200,40 265,30 312,22" style="fill:none; stroke:var(--primary); stroke-width:3; stroke-linecap:round; stroke-linejoin:round"/>
-          <circle cx="8" cy="70" r="4" style="fill:var(--primary)"/><circle cx="70" cy="62" r="4" style="fill:var(--primary)"/><circle cx="135" cy="52" r="4" style="fill:var(--primary)"/><circle cx="200" cy="40" r="4" style="fill:var(--primary)"/><circle cx="265" cy="30" r="4" style="fill:var(--primary)"/><circle cx="312" cy="22" r="4" style="fill:var(--primary)"/>
-        </svg>
-        <p class="body-text" style="margin-top:12px">Growth lines are Mia's own — following her own curve is what matters.</p>
-      </div>
-    </section>
+.empty{display:grid;grid-template-columns:minmax(0,1fr) 112px;column-gap:12px;padding:14px 12px 14px 16px;align-items:center}
+.empty .thumb{width:112px;height:112px;border-radius:var(--r-thumb);object-fit:cover}
+.empty .btn{grid-column:1 / -1;margin-top:14px}
+.empty p{margin-top:4px}
+.hist{display:grid;grid-template-columns:64px minmax(0,1fr) 20px;column-gap:12px;align-items:center;padding:12px 0;min-height:64px}
+.hist + .hist{border-top:1px solid var(--hairline)}
+.hist .im,.hist .tile{width:64px;height:48px;border-radius:8px;object-fit:cover}
+.hist .tile{display:grid;place-items:center;background:var(--coral-tint);color:var(--coral-text)}
+.hist .chev{color:var(--soft)}
+.statrow{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.stat{display:flex;align-items:center;gap:12px}
+.stat .tile{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;flex:none}
+.stat .tile svg{width:22px;height:22px}
+.stat b{display:block}
+.sec{margin-top:32px}
+.sec > .t-card{padding-bottom:12px}
+.chartwrap{margin-top:12px}
+#week .memnew + .memnew{margin-top:var(--gap-row)}
+.memnew{padding:14px 16px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center}
 
-    <!-- ================= PROFILE (static) ================= -->
-    <section class="view" id="view-profile">
-      <div style="height:16px"></div>
-      <h1 class="rounded">Profile</h1>
-      <p class="sub">Mia, and the grown-ups who love her.</p>
-      <span class="static-tag">Static preview in the demo</span>
-      <div class="logo-profile">
-        <svg class="logo-svg" width="170" height="73" viewBox="0 0 480 205" role="img" aria-label="bloomy"><path class="logo-leaf" d="M197,66 C168,68 148,52 144,26 C172,26 192,40 197,66 Z"/><path class="logo-leaf" d="M199,54 C224,50 242,34 244,8 C218,12 202,28 199,54 Z"/><path class="logo-stem" d="M197,108 C197,88 197,72 198,54" fill="none" stroke-width="7" stroke-linecap="round"/><text class="logo-word" x="24" y="170" font-size="118" letter-spacing="-2">bloomy</text></svg>
-      </div>
-      <div class="card">
-        <h3>Mia</h3>
-        <div class="srow"><span class="s-label">Age</span><span class="s-value">18 months</span></div>
-        <div class="srow"><span class="s-label">This month's focus</span><span class="s-value">Words, steps, and taking turns</span></div>
-      </div>
-      <div class="card">
-        <h3>Caregivers</h3>
-        <div class="srow"><span class="s-label">You</span><span class="s-value">Parent</span></div>
-        <div class="srow"><span class="s-label">Second caregiver</span><span class="s-value">Not added in the demo</span></div>
-      </div>
-      <div class="card">
-        <h3>Gentle preferences</h3>
-        <div class="srow"><span class="s-label">One activity a day</span><span class="s-value">On</span></div>
-        <div class="srow"><span class="s-label">Gentle reminder</span><span class="s-value">9:00 in the morning</span></div>
-        <div class="srow"><span class="s-label">Appearance</span><span class="s-value">Follows your device</span></div>
-      </div>
-      <div class="card">
-        <h3>Your data</h3>
-        <p class="body-text">Photos stay on this device in the demo</p>
-        <div class="srow"><span class="s-label">Notifications</span><span class="s-value">Gentle</span></div>
-        <div class="srow"><span class="s-label">Privacy</span><svg class="ic sm" style="color:var(--tertiary)"><use href="#i-chev-r"/></svg></div>
-        <div class="srow"><span class="s-label">About bloomy</span><svg class="ic sm" style="color:var(--tertiary)"><use href="#i-chev-r"/></svg></div>
-      </div>
-    </section>
-  </div>
 
-  <nav class="tabbar">
-    <button type="button" class="active" data-tab="today" onclick="showTab('today')"><svg class="ic"><use href="#i-sun"/></svg>Today</button>
-    <button type="button" data-tab="milestones" onclick="showTab('milestones')"><svg class="ic"><use href="#i-list"/></svg>Milestones</button>
-    <button type="button" data-tab="activity" onclick="showTab('activity')"><svg class="ic"><use href="#i-blocks"/></svg>Activity</button>
-    <button type="button" data-tab="growth" onclick="showTab('growth')"><svg class="ic"><use href="#i-growth"/></svg>Growth</button>
-    <button type="button" data-tab="profile" onclick="showTab('profile')"><svg class="ic"><use href="#i-user"/></svg>Profile</button>
-  </nav>
-</div>
+.pcard{display:grid;grid-template-columns:minmax(0,1fr) 141px;column-gap:12px;padding:12px 12px 12px 16px;align-items:center;min-height:150px}
+.pcard .thumb{width:141px;height:93px;border-radius:var(--r-thumb);object-fit:cover}
+.setrow{display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:52px;padding:6px 0}
+.setrow + .setrow{border-top:1px solid var(--hairline)}
+.setrow .v{color:var(--body)}
+.switch{width:46px;height:28px;border-radius:999px;background:var(--primary-deep);position:relative;flex:none;display:block}
+.switch::after{content:"";position:absolute;top:3px;right:3px;width:22px;height:22px;border-radius:50%;background:#fff}
+.switch.off{background:var(--soft)}
+.switch.off::after{right:auto;left:3px}
 
-<script>
 
-  /* Bloomy demo state — in-memory only. Milestone data is the fixed
-     demo set from Bloomy-brand-system.md §4. */
-  var DOMAIN_ICON = { Motor: "footprints", Language: "messages", Play: "blocks", Social: "users" };
-  var STATUS_META = {
-    done:  { label: "Done",          icon: "check-circle", cls: "ic-done" },
-    now:   { label: "Happening now", icon: "circle-dot",   cls: "ic-now" },
-    later: { label: "Coming later",  icon: "circle",       cls: "ic-later" }
-  };
-  var MILESTONES = [
-    { id: 1, domain: "Motor",    status: "done",  name: "Walks across a room without holding on",
-      note: "often around 12–15 months",
-      looks: "Mia lets go of the furniture, crosses the room on her own feet, and sits down when she is ready — a wobble is part of the picture." },
-    { id: 2, domain: "Motor",    status: "now",   name: "Kicks a ball forward while standing",
-      note: "often around 18–22 months",
-      looks: "Standing near a ball, Mia swings one foot at it and the ball rolls forward. She may steady herself on a chair, or sit down suddenly — both are trying." },
-    { id: 3, domain: "Language", status: "done",  name: "Says at least 6 words besides “mama/dada”",
-      note: "often around 15–18 months",
-      looks: "Words pop out in context — “ball” at the park, “up” with arms raised, “gone” at an empty bowl. They do not need to sound grown-up to count." },
-    { id: 4, domain: "Language", status: "now",   name: "Puts two words together (“more juice”)",
-      note: "often around 18–24 months",
-      looks: "Two words arrive as a pair — “more juice”, “daddy go”, “my shoe”. The pair may run together at first, and she may use the same one for a while." },
-    { id: 5, domain: "Play",     status: "done",  name: "Stacks a tower of 3 blocks",
-      note: "often around 15–18 months", memory: true,
-      looks: "One block, a pause, a second, then a third balanced on top — and often a proud clap before the tower falls." },
-    { id: 6, domain: "Play",     status: "now",   name: "Stacks a tower of 6 blocks",
-      note: "often around 18–22 months",
-      looks: "The tower grows higher and wobblier. Mia slows down for the top blocks and breathes out when one stays — the careful hands are the milestone." },
-    { id: 7, domain: "Social",   status: "done",  name: "Brings you a toy just to show you",
-      note: "often around 14–18 months",
-      looks: "Mia carries a toy across the room, holds it up for you to see, and watches your face. She is not asking for help — she is sharing the interesting thing." },
-    { id: 8, domain: "Social",   status: "later", name: "Takes turns in a back-and-forth game",
-      note: "often around 20–26 months",
-      looks: "A ball rolls to Mia, she rolls it back, and waits for it to come again — the waiting for your turn is the new part, and it comes and goes at first." }
-  ];
-  var currentFilter = "All";
-  var currentDetail = null;
-  var savedSaw = {};
+.veil{position:fixed;inset:0;background:rgba(29,39,51,.45);z-index:50;display:none}
+.veil.on{display:block}
+.sheet{position:fixed;left:50%;transform:translateX(-50%);bottom:0;width:100%;max-width:var(--col);background:var(--canvas);border-radius:var(--r-card) var(--r-card) 0 0;padding:16px var(--gutter) 34px;z-index:60;display:none}
+.sheet.on{display:block}
+.sheet .t-card{padding:4px 0 8px}
+.sheet .opt{display:flex;align-items:center;gap:12px;width:100%;min-height:52px;border-top:1px solid var(--hairline)}
+.sheet .opt svg{color:var(--primary-deep)}
+.toast{position:fixed;left:50%;bottom:calc(var(--tab-h) + 12px);transform:translateX(-50%);width:calc(100% - 48px);max-width:calc(var(--col) - 48px);background:var(--ink);color:var(--canvas);border-radius:var(--r-ctl);padding:12px 16px;z-index:70;display:none}
+.toast.on{display:block}
+.toast .t-label{color:var(--canvas)}
 
-  function chipHTML(domain) {
-    return '<span class="chip chip-' + domain.toLowerCase() + '"><svg><use href="#i-' +
-      DOMAIN_ICON[domain] + '"/></svg><span class="dot"></span>' + domain + '</span>';
-  }
-  function rowHTML(m) {
-    var st = STATUS_META[m.status];
-    var heart = m.memory
-      ? '<span class="heart"><svg class="ic sm"><use href="#i-heart"/></svg><span class="coral-label">Memory saved</span></span>'
-      : "";
-    return '<button type="button" class="mrow ' + m.status + '" onclick="openDetail(' + m.id + ')">' +
-      '<svg class="ic ' + st.cls + '"><use href="#i-' + st.icon + '"/></svg>' +
-      '<span class="m-main"><span class="m-name">' + m.name + '</span>' +
-      '<span class="m-meta">' + chipHTML(m.domain) + '<span class="meta">' + m.note + '</span>' + heart + '</span>' +
-      '<span class="m-status">' + st.label + '</span></span>' +
-      '<svg class="ic sm chev"><use href="#i-chev-r"/></svg></button>';
-  }
-  function renderMilestones() {
-    var groups = [["now", "Happening now"], ["done", "Done"], ["later", "Coming later"]];
-    var html = "";
-    groups.forEach(function (g) {
-      var rows = MILESTONES.filter(function (m) {
-        return m.status === g[0] && (currentFilter === "All" || m.domain === currentFilter);
-      });
-      if (!rows.length) return;
-      html += '<p class="group-label">' + g[1] + '</p>';
-      rows.forEach(function (m) { html += rowHTML(m); });
-    });
-    if (!html) html = '<p class="note-line">Nothing in this domain yet.</p>';
-    document.getElementById("ms-groups").innerHTML = html;
-    var counts = { done: 0, now: 0, later: 0 };
-    MILESTONES.forEach(function (m) { counts[m.status]++; });
-    document.getElementById("ms-count").textContent =
-      MILESTONES.length + " milestones · " + counts.done + " done, " +
-      counts.now + " happening now, " + counts.later + " coming later";
-  }
-  function renderSnapshot() {
-    var ids = [2, 5, 8];
-    document.getElementById("snapshot").innerHTML = ids.map(function (id) {
-      return rowHTML(MILESTONES.filter(function (m) { return m.id === id; })[0]);
-    }).join("");
-  }
-  function setFilter(f) {
-    currentFilter = f;
-    document.querySelectorAll("#filters .fchip").forEach(function (btn) {
-      btn.classList.toggle("selected", btn.getAttribute("data-filter") === f);
-    });
-    renderMilestones();
-  }
-  function openDetail(id) {
-    var m = MILESTONES.filter(function (x) { return x.id === id; })[0];
-    if (!m) return;
-    currentDetail = id;
-    var st = STATUS_META[m.status];
-    document.getElementById("d-name").textContent = m.name;
-    document.getElementById("d-status").innerHTML =
-      '<svg class="ic ' + st.cls + '"><use href="#i-' + st.icon + '"/></svg>' + st.label;
-    document.getElementById("d-chip").innerHTML = chipHTML(m.domain);
-    document.getElementById("d-note").textContent = m.note;
-    document.getElementById("d-looks").textContent = m.looks;
-    document.getElementById("d-range").textContent =
-      "This is " + m.note + " for many children — and the span around that is wide. " +
-      "Earlier or later is information, not a verdict, and Mia's own order is the one that counts.";
-    var btn = document.getElementById("d-saw");
-    var note = document.getElementById("d-saw-note");
-    if (m.status === "done") {
-      btn.textContent = "Saved as Done";
-      btn.classList.add("saved");
-      btn.disabled = true;
-      note.classList.toggle("show", !!savedSaw[id]);
-    } else {
-      btn.textContent = "I saw this";
-      btn.classList.remove("saved");
-      btn.disabled = false;
-      note.classList.remove("show");
-    }
-    showTab("detail");
-  }
-  function sawThis() {
-    var m = MILESTONES.filter(function (x) { return x.id === currentDetail; })[0];
-    if (!m || m.status === "done") return;
-    m.status = "done";
-    savedSaw[m.id] = true;
-    renderMilestones();
-    renderSnapshot();
-    openDetail(m.id);
-  }
 
-  /* Activity state — step 4. The four activities are data, so picking
-     a swap activity re-renders the whole detail view. Activity copy is
-     illustrative demo content in the brand voice, not clinically
-     reviewed (brand system §5). */
-  var ACTIVITIES = {
-    play: {
-      name: "Stack, wait, topple", domain: "Play", file: "bloomy-activity-play.jpg",
-      needs: "You'll need: 4–6 blocks or stacking cups, and a floor you don't mind being noisy",
-      steps: [
-        "Sit facing Mia and stack two blocks slowly, so she can watch your hands.",
-        "Pause with your hand hovering — let her knock it down or add one herself.",
-        "Rebuild together, counting out loud, “one… two…”.",
-        "When she stacks two, stop and celebrate that, not the tower's height.",
-        "Finish by toppling the tallest tower together, on purpose, with a countdown."
-      ],
-      shorter: "Skip the counting. Stack, wait for her hands, topple — three towers is a whole game.",
-      clicks: "Trying looks like Mia stacking two, watching them fall, and handing you the next block. That's the game."
-    },
-    motor: {
-      name: "Push and parade", domain: "Motor", file: "bloomy-activity-motor.jpg",
-      needs: "You'll need: a sturdy box, a push-toy, or a chair you can slide — and a clear lap of the room",
-      steps: [
-        "Clear one lap of the room and put the box or push-toy at the start.",
-        "Let Mia take hold and walk the lap with you beside her, not steering.",
-        "Pause halfway and cheer the pushing itself, not the speed.",
-        "Turn the box around together and walk the lap back the other way.",
-        "Finish with a little parade: one more lap, waving at the furniture as you pass."
-      ],
-      shorter: "One lap only, no turning back. Push, pause, cheer — that is a whole parade.",
-      clicks: "Trying looks like Mia pushing with both hands, stopping to look, and pushing again. The wobble is the practice."
-    },
-    language: {
-      name: "Name it, wait, cheer", domain: "Language", file: "bloomy-activity-language.jpg",
-      needs: "You'll need: a familiar picture book with big, simple pictures — and a lap to sit on",
-      steps: [
-        "Sit Mia on your lap and open the book to a page she already knows.",
-        "Point at one picture and name it slowly, just the one word.",
-        "Wait, with your finger still on the picture, and give her time to try it.",
-        "Whatever she says — the word, a sound, a point — cheer it like an answer.",
-        "Turn one page and do it again, then close the book while it is still fun."
-      ],
-      shorter: "One page only. Point, name, wait, cheer — then close the book on a happy note.",
-      clicks: "Trying looks like Mia pointing, babbling, or saying part of the word and looking at your face. That look is the conversation."
-    },
-    social: {
-      name: "Tea for two bears", domain: "Social", file: "bloomy-activity-social.jpg",
-      needs: "You'll need: two stuffed bears, a small cup or two, and a blanket for the picnic",
-      steps: [
-        "Set the two bears on the blanket and give Mia a cup of her own.",
-        "Pour for one bear, slowly, and say whose turn it is as you pour.",
-        "Hand Mia the cup and wait while she pours for the other bear.",
-        "Take a pretend sip from your bear and make a happy sound.",
-        "Pour one last round together, then pack the cups away side by side."
-      ],
-      shorter: "One round only. Pour for one bear, let Mia pour for the other, sip, done.",
-      clicks: "Trying looks like Mia pouring, waiting while you pour, and offering the cup back. The waiting is the turn-taking."
-    }
-  };
-  var actId = "play";
-  var actShorter = false;
-  var savedActivities = {};
-  function renderActivity(id) {
-    var a = ACTIVITIES[id];
-    if (!a) return;
-    actId = id;
-    actShorter = false;
-    document.getElementById("act-hero").setAttribute("aria-label", "Placeholder for " + a.file + " — image to come");
-    document.getElementById("act-hero-file").textContent = a.file;
-    document.getElementById("act-chip").innerHTML = chipHTML(a.domain);
-    document.getElementById("act-title").textContent = a.name;
-    document.getElementById("act-needs").textContent = a.needs;
-    document.getElementById("act-steps").innerHTML = a.steps.map(function (s) {
-      return "<li>" + s + "</li>";
-    }).join("");
-    document.getElementById("act-shorter-body").textContent = a.shorter;
-    document.getElementById("act-clicks").textContent = a.clicks;
-    document.getElementById("act-swap").classList.remove("show");
-    var saved = !!savedActivities[id];
-    var btn = document.getElementById("act-done-btn");
-    btn.classList.toggle("saved", saved);
-    btn.innerHTML = saved
-      ? '<svg class="ic sm"><use href="#i-check"/></svg>Saved as a memory'
-      : "Done — save as memory";
-    document.getElementById("act-done-note").classList.toggle("show", saved);
-    document.getElementById("act-back").style.display = id === "play" ? "none" : "flex";
-    applyShorter();
-  }
-  function applyShorter() {
-    document.getElementById("act-shorter").style.display = actShorter ? "block" : "none";
-    document.getElementById("act-full").style.display = actShorter ? "none" : "block";
-    document.getElementById("act-time").textContent = actShorter ? "5 minutes" : "10 minutes";
-    document.getElementById("act-shorter-btn").textContent = actShorter ? "Show the full version" : "Shorter today";
-  }
-  function toggleShorter() { actShorter = !actShorter; applyShorter(); }
-  function toggleSwap() { document.getElementById("act-swap").classList.toggle("show"); }
-  function pickActivity(id) { renderActivity(id); }
-  function backToToday() { renderActivity("play"); }
-  function openActivity(shorter, swap) {
-    renderActivity("play");
-    actShorter = !!shorter;
-    applyShorter();
-    if (swap) document.getElementById("act-swap").classList.add("show");
-    showTab("activity");
-  }
-  function activityDone() {
-    if (savedActivities[actId]) return;
-    savedActivities[actId] = true;
-    var a = ACTIVITIES[actId];
-    var btn = document.getElementById("act-done-btn");
-    btn.classList.add("saved");
-    btn.innerHTML = '<svg class="ic sm"><use href="#i-check"/></svg>Saved as a memory';
-    document.getElementById("act-done-note").classList.add("show");
-    var card = document.createElement("div");
-    card.className = "card";
-    card.id = "memory-" + actId;
-    card.innerHTML =
-      '<p style="display:flex; align-items:center; gap:8px; margin:0 0 6px">' +
-      '<span class="heart"><svg class="ic sm"><use href="#i-heart"/></svg><span class="coral-label">Saved memory</span></span>' +
-      chipHTML(a.domain) + '</p>' +
-      '<p class="body-text">' + a.name + ' — played together today, 26 Oct.</p>';
-    var empty = document.getElementById("week-empty");
-    if (empty) empty.style.display = "none";
-    document.getElementById("memory-week").appendChild(card);
-  }
+@media (prefers-reduced-motion:no-preference){.scr.on{animation:none}}
 
-  /* Tab navigation: 5 sections; milestone detail is a Milestones sub-view. */
-  function showTab(name) {
-    var tabFor = { today: "today", milestones: "milestones", detail: "milestones",
-                   activity: "activity", growth: "growth", profile: "profile" };
-    document.querySelectorAll(".view").forEach(function (v) { v.classList.remove("active"); });
-    document.getElementById("view-" + name).classList.add("active");
-    document.querySelectorAll(".tabbar button").forEach(function (btn) {
-      btn.classList.toggle("active", btn.getAttribute("data-tab") === tabFor[name]);
-    });
-    document.getElementById("screen").scrollTop = 0;
-  }
+.tl{position:relative}
+.tl-link{position:absolute;width:0;border-left:2px dashed var(--soft);opacity:.75}
+.im{display:block;overflow:hidden;border-radius:var(--r-thumb);flex:none;background:var(--surface-warm);align-self:center}
+.im img{width:100%;height:100%;object-fit:cover;transform:scale(1.07)}
+.im.s141{width:141px;height:93px}.im.s112{width:112px;height:112px}.im.s96{width:96px;height:96px}.im.s88{width:88px;height:88px}.im.s56{width:56px;height:56px}.im.s64{width:64px;height:48px;border-radius:8px}
+.im.feather{background:none;border-radius:0;overflow:visible}
+.im.feather img{transform:none;mix-blend-mode:multiply;filter:brightness(1.07) contrast(1.12) saturate(.85);-webkit-mask-image:radial-gradient(closest-side,#000 55%,transparent 90%);mask-image:radial-gradient(closest-side,#000 55%,transparent 90%)}
+.pic{display:block;overflow:hidden;background:var(--surface-warm)}
+.pic img{width:100%;height:100%;object-fit:cover;transform:scale(1.04)}
+.meta-col{display:flex;flex-direction:column;align-items:flex-start;gap:2px}
+.tm{gap:6px}.tm svg{width:16px;height:16px}
+.link{color:var(--body)}.link svg{color:var(--muted)}
+#s-home.on{display:flex;flex-direction:column;min-height:100vh}
+.home-foot{margin-top:auto;display:flex;flex-direction:column;align-items:center;gap:4px;padding:24px var(--gutter) 8px;text-align:center}
+.filters{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;padding-right:var(--gutter);-webkit-mask-image:linear-gradient(to right,#000 90%,transparent);mask-image:linear-gradient(to right,#000 90%,transparent)}
+.filters::-webkit-scrollbar{display:none}
+.fchip{flex:none;padding:0 14px}
+.flat{padding:0 var(--gutter)}
+.flat li + li{border-top:1px solid var(--hairline)}
+.flatrow{display:grid;grid-template-columns:20px minmax(0,1fr) auto;column-gap:12px;align-items:center;min-height:52px;padding:6px 0}
+.flatrow .ck{color:var(--primary-deep);display:grid}.flatrow .ck.hollow{color:var(--soft)}
+.flatrow .d{color:var(--body)}
+.range{margin-top:20px}.range svg{display:block;margin-top:10px;overflow:visible}
+.callout{margin-top:24px;padding:16px;border-radius:var(--r-card);background:var(--tint2)}
+@keyframes pop{0%{transform:scale(.5)}60%{transform:scale(1.2)}100%{transform:scale(1)}}
+.pop{animation:pop .6s cubic-bezier(.3,1.4,.5,1) both}
+@media (prefers-reduced-motion:reduce){.pop{animation:none}}
+.memcard{margin-bottom:var(--gap-row)}
+.memcard .eyebrow{margin:0 0 2px}.memcard .t-card{margin:2px 0 8px}
+#week > .memcard + .memcard{margin-top:0}
+.sheet::before{content:"";display:block;width:36px;height:4px;border-radius:2px;background:var(--hairline-warm);margin:0 auto 12px}
+#opt-close{justify-content:center;color:var(--muted)}
+.setrow .v{color:var(--muted)}
+.pcard .t-title{margin:0}
+.emptyrow{display:grid;grid-template-columns:56px minmax(0,1fr);column-gap:12px;align-items:center;padding:12px 16px}
+.link2{display:inline-flex;align-items:center;min-height:44px;color:var(--primary-deep)}
+.btn svg.pop{transform-origin:center}
+#m-try{margin-top:12px}
+</style></head><body><svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<symbol id="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></symbol>
+<symbol id="i-list" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 17 2 2 4-4"/><path d="m3 7 2 2 4-4"/><path d="M13 6h8"/><path d="M13 12h8"/><path d="M13 18h8"/></symbol>
+<symbol id="i-growth" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></symbol>
+<symbol id="i-user" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5"/></symbol>
 
-  renderMilestones();
-  renderSnapshot();
-</script>
 
-<script>
+<symbol id="i-msg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 9a2 2 0 0 1-2 2H6l-4 4V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v5Z"/><path d="M18 9h2a2 2 0 0 1 2 2v11l-4-4h-6a2 2 0 0 1-2-2v-1"/></symbol>
+<symbol id="i-users" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></symbol>
+<symbol id="i-chev-r" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></symbol>
+<symbol id="i-chev-l" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></symbol>
+<symbol id="i-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></symbol>
+<symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></symbol>
+<symbol id="i-heart" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.29 1.51 4.04 3 5.5l7 7Z"/></symbol>
+<symbol id="i-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M5 12h14"/></symbol>
+<symbol id="i-dots" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="5" cy="12" r="1.9"/><circle cx="12" cy="12" r="1.9"/><circle cx="19" cy="12" r="1.9"/></symbol>
+<symbol id="i-share" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 8 5-5 5 5"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></symbol>
+<symbol id="i-flag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><path d="M4 22v-7"/></symbol>
+<symbol id="i-sprout" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 20h10"/><path d="M10 20c5.5-2.5.8-6.4 3-10"/><path d="M9.5 9.4c1.1.8 1.8 2.2 2.3 3.7-2 .4-3.5.4-4.8-.3-1.2-.6-2.3-1.9-3-4.2 2.8-.5 4.4 0 5.5.8z"/><path d="M14.1 6a7 7 0 0 0-1.1 4c1.9-.1 3.3-.6 4.3-1.4 1-1 1.6-2.3 1.7-4.6-2.7.1-4 1-4.9 2z"/></symbol>
+<symbol id="i-scale" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18"/><path d="M5 7h14"/><path d="m5 7-3 8a4 4 0 0 0 6 0Z"/><path d="m19 7-3 8a4 4 0 0 0 6 0Z"/></symbol>
+<symbol id="i-ruler" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.3 15.3 8.7 2.7a1 1 0 0 0-1.4 0L2.7 7.3a1 1 0 0 0 0 1.4l12.6 12.6a1 1 0 0 0 1.4 0l4.6-4.6a1 1 0 0 0 0-1.4Z"/><path d="m7.5 10.5 2 2"/><path d="m10.5 7.5 2 2"/><path d="m13.5 4.5 2 2"/><path d="m4.5 13.5 2 2"/></symbol>
+<symbol id="i-foot" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m12 8 3.5 2.5-1.3 4H9.8l-1.3-4Z"/><path d="M12 8V3.2"/><path d="m15.5 10.5 4.6-1.5"/><path d="m14.2 14.5 2.8 3.8"/><path d="M9.8 14.5 7 18.3"/><path d="M8.5 10.5 3.9 9"/></symbol><symbol id="i-check-c" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m8.5 12.5 2.5 2.5 4.5-5"/></symbol><symbol id="i-circle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/></symbol><symbol id="i-blocks" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="14" width="8" height="7" rx="1.5"/><rect x="13" y="14" width="8" height="7" rx="1.5"/><rect x="8" y="5" width="8" height="7" rx="1.5"/></symbol></defs></svg><div class="app"><section class="scr" id="s-home" data-route="home" data-tab="home" aria-labelledby="h-home"><header class="topbar"><div class="brand" role="img" aria-label="Bloomy"><svg class="ic" viewBox="135 0 120 115" aria-hidden="true" style="width:26px;height:26px"><path d="M197,66 C168,68 148,52 144,26 C172,26 192,40 197,66 Z" fill="currentColor"/><path d="M199,54 C224,50 242,34 244,8 C218,12 202,28 199,54 Z" fill="currentColor"/><path d="M197,108 C197,88 197,72 198,54" fill="none" stroke="currentColor" stroke-width="9" stroke-linecap="round"/></svg></div><a class="avatar" href="#/profile" aria-label="Hồ sơ của Mầm">M</a></header><div class="head"><p class="t-greet">Chào buổi sáng, bạn</p><h1 class="t-title" id="h-home" tabindex="-1">Hôm nay chỉ một việc nhỏ</h1></div><ol class="tl"><li class="tl-i now"><span class="dot" aria-hidden="true"></span><article class="card tcard" id="home-card"><div class="tx"><p class="t-meta eyebrow">Buổi sáng</p><h2 class="t-card" id="home-title"><a href="#/activity" class="go-title">Xếp, chờ, đổ</a></h2><div class="meta-col" id="home-meta"><span class="chip t-label d-play"><svg class="ic16" aria-hidden="true"><use href="#i-blocks"/></svg>Chơi</span><span class="tm t-label"><svg class="ic16" aria-hidden="true"><use href="#i-clock"/></svg>10 phút</span></div><div class="more-wrap"><button type="button" class="more" id="more-btn" aria-label="Tùy chọn cho hoạt động" aria-haspopup="dialog"><svg class="ic" aria-hidden="true"><use href="#i-dots"/></svg></button></div></div><span class="im s141"><img id="home-thumb" src="img/bloomy-activity-play.jpg" alt=""></span></article></li><li class="tl-i later"><span class="dot" aria-hidden="true"></span><a class="frow" href="#/milestone/2"><p class="t-meta">Buổi chiều</p><h2 class="t-cardsm">Đá bóng khi đứng</h2></a></li><li class="tl-i later"><span class="dot" aria-hidden="true"></span><a class="frow" href="#/growth"><p class="t-meta">Buổi tối</p><h2 class="t-cardsm">Ghi lại khoảnh khắc nhỏ</h2></a></li></ol><div class="home-foot"><span class="im s96 feather"><img src="img/bloomy-spot-sprout.jpg" alt=""></span><p class="t-body">Một hoạt động mỗi ngày là đủ.</p></div></section><section class="scr cta" id="s-activity" data-route="activity" data-notab="1" aria-labelledby="h-act"><header class="navbar"><a class="round" href="#/home" aria-label="Quay lại"><svg class="ic" aria-hidden="true"><use href="#i-chev-l"/></svg></a><span></span></header><div class="pad"><span class="pic"><img id="act-pic" src="img/bloomy-activity-play.jpg" alt="Mầm xếp khối gỗ, một bàn tay đưa thêm khối"></span><div class="meta-row" style="margin-top:16px" id="act-meta"><span class="chip t-label d-play"><svg class="ic16" aria-hidden="true"><use href="#i-blocks"/></svg>Chơi</span><span class="tm t-label"><svg class="ic16" aria-hidden="true"><use href="#i-clock"/></svg>10 phút</span></div><h1 class="t-title" id="h-act" tabindex="-1" style="margin-top:10px">Xếp, chờ, đổ</h1><p class="t-body" id="act-needs" style="margin-top:6px">Bạn cần 4 đến 6 khối gỗ hoặc cốc xếp.</p><h2 class="t-card" style="margin-top:24px">Cách chơi</h2><ol class="steps" id="act-steps"></ol><div class="card short t-body" id="act-short" hidden></div><div class="links"><button type="button" class="link t-label" id="act-shorter"><svg class="ic20" aria-hidden="true"><use href="#i-clock"/></svg><span id="act-shorter-t">Chơi ngắn hơn</span></button><a class="link t-label" href="#/swap"><svg class="ic20" aria-hidden="true"><use href="#i-blocks"/></svg><span>Đổi hoạt động</span></a></div></div></section><div class="ctabar" id="act-cta" hidden><button type="button" class="btn t-btn" id="act-done">Xong, lưu thành kỷ niệm</button></div><section class="scr plain" id="s-swap" data-route="swap" data-notab="1" aria-labelledby="h-swap"><header class="navbar"><a class="round" href="#/activity" aria-label="Quay lại hoạt động"><svg class="ic" aria-hidden="true"><use href="#i-chev-l"/></svg></a><span></span></header><div class="head"><h1 class="t-title" id="h-swap" tabindex="-1">Chọn hoạt động khác</h1><p class="t-body">Một việc là đủ cho hôm nay.</p></div><ul class="rows swaps" style="margin-top:24px"><li><button type="button" class="card swap-card" data-act="motor"><span class="tx"><span class="t-cardsm" style="display:block">Đẩy xe, diễu hành</span><span class="t-desc" style="display:block;margin-top:4px">Một vòng phòng với chiếc xe đẩy.</span><span class="meta-row" style="margin-top:8px"><span class="chip t-label d-motor"><svg class="ic16" aria-hidden="true"><use href="#i-foot"/></svg>Vận động</span></span></span><span class="im s88"><img src="img/bloomy-activity-motor.jpg" alt=""></span></button></li><li><button type="button" class="card swap-card" data-act="lang"><span class="tx"><span class="t-cardsm" style="display:block">Gọi tên, chờ, reo</span><span class="t-desc" style="display:block;margin-top:4px">Chỉ và gọi tên những hình quen.</span><span class="meta-row" style="margin-top:8px"><span class="chip t-label d-lang"><svg class="ic16" aria-hidden="true"><use href="#i-msg"/></svg>Ngôn ngữ</span></span></span><span class="im s88"><img src="img/bloomy-activity-language.jpg" alt=""></span></button></li><li><button type="button" class="card swap-card" data-act="social"><span class="tx"><span class="t-cardsm" style="display:block">Tiệc trà cho hai gấu</span><span class="t-desc" style="display:block;margin-top:4px">Luân phiên rót trà cho hai gấu bông.</span><span class="meta-row" style="margin-top:8px"><span class="chip t-label d-social"><svg class="ic16" aria-hidden="true"><use href="#i-users"/></svg>Xã hội</span></span></span><span class="im s88"><img src="img/bloomy-activity-social.jpg" alt=""></span></button></li></ul></section><section class="scr" id="s-milestones" data-route="milestones" data-tab="milestones" aria-labelledby="h-ms"><div class="head tight"><h1 class="t-title" id="h-ms" tabindex="-1">Cột mốc</h1><p class="t-body">Là một khoảng, không phải hạn chót.</p></div><div class="filters" id="filters" role="group" aria-label="Lọc theo nhóm" data-scroller="1"><button type="button" class="fchip t-label on" data-f="all" aria-pressed="true">Tất cả</button><button type="button" class="fchip t-label" data-f="motor" aria-pressed="false">Vận động</button><button type="button" class="fchip t-label" data-f="lang" aria-pressed="false">Ngôn ngữ</button><button type="button" class="fchip t-label" data-f="play" aria-pressed="false">Chơi</button><button type="button" class="fchip t-label" data-f="social" aria-pressed="false">Xã hội</button></div><div id="ms-list"></div></section><section class="scr cta" id="s-milestone" data-route="milestone" data-notab="1" aria-labelledby="h-m"><header class="navbar"><a class="round" href="#/milestones" aria-label="Quay lại cột mốc"><svg class="ic" aria-hidden="true"><use href="#i-chev-l"/></svg></a><span></span></header><div class="pad"><div class="meta-row" id="m-meta"></div><h1 class="t-title" id="h-m" tabindex="-1" style="margin-top:12px"></h1><div class="range"><p class="t-cardsm" id="m-range"></p><svg id="m-bar" viewBox="0 0 342 64" width="100%" role="img" aria-label=""></svg></div><h2 class="t-card" style="margin-top:28px">Trông như thế nào</h2><p class="t-body" id="m-looks" style="margin-top:8px"></p><p class="callout t-body">Sớm hơn hay muộn hơn là thông tin, không phải phán xét.</p><h2 class="t-card" id="m-try-h" style="margin-top:28px" hidden>Thử hoạt động này</h2><button type="button" class="card swap-card" id="m-try" data-act="motor" hidden></button></div></section><div class="ctabar" id="m-cta" hidden><button type="button" class="btn t-btn" id="m-saw">Mầm đã làm được</button></div><section class="scr" id="s-growth" data-route="growth" data-tab="growth" aria-labelledby="h-gr"><div class="head" style="padding-top:20px"><h1 class="t-title" id="h-gr" tabindex="-1">Lớn lên và kỷ niệm</h1><p class="t-body">Những điều nhỏ, được giữ lại.</p></div><div class="pad sec" style="margin-top:24px"><h2 class="t-card">Tuần này</h2><div id="week"><article class="card emptyrow" id="week-empty"><span class="im s56 feather"><img src="img/bloomy-spot-sprout.jpg" alt=""></span><div><h3 class="t-cardsm">Chưa có kỷ niệm nào</h3><p class="t-desc">Hoạt động hôm nay có thể là kỷ niệm đầu tiên.</p><button type="button" class="link2 t-btn" id="add-mem">Thêm kỷ niệm</button></div></article></div><button type="button" class="link t-label" id="add-more" hidden><svg class="ic20" aria-hidden="true"><use href="#i-plus"/></svg>Thêm kỷ niệm</button></div><div class="pad sec"><h2 class="t-card">Kỷ niệm</h2><div class="hist"><span class="im s64"><img src="img/bloomy-activity-play.jpg" alt=""></span><div><p class="t-cardsm">Tháp ba khối đầu tiên</p><p class="t-desc" style="margin-top:2px">12/10, bé vỗ tay</p></div><span class="chev"><svg class="ic20" aria-hidden="true"><use href="#i-chev-r"/></svg></span></div><div class="hist"><span class="tile"><svg class="ic20" aria-hidden="true"><use href="#i-msg"/></svg></span><div><p class="t-cardsm">Câu hai từ đầu tiên</p><p class="t-desc" style="margin-top:2px">21/10, thêm nước</p></div><span class="chev"><svg class="ic20" aria-hidden="true"><use href="#i-chev-r"/></svg></span></div></div><div class="pad sec"><h2 class="t-card">Số đo</h2><div class="statrow"><div class="stat"><span class="tile" style="background:var(--coral-tint);color:var(--coral-text)"><svg class="ic20" aria-hidden="true"><use href="#i-scale"/></svg></span><div><b class="t-card">10,2 kg</b><span class="t-meta">Cân nặng</span></div></div><div class="stat"><span class="tile" style="background:var(--sky-tint);color:var(--sky-text)"><svg class="ic20" aria-hidden="true"><use href="#i-ruler"/></svg></span><div><b class="t-card">81,5 cm</b><span class="t-meta">Chiều dài</span></div></div></div><div class="chartwrap"><svg viewBox="0 0 342 112" width="100%" role="img" aria-label="Cân nặng của Mầm từ 12 đến 18 tháng, tăng đều đến 10,2 kg" style="display:block"><line x1="0" y1="84" x2="342" y2="84" stroke="#E4E7DD" stroke-width="1"/><polyline points="10,68 80,60 150,50 218,38 282,28 322,20" fill="none" stroke="#0E6B57" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><g fill="#0E6B57"><circle cx="10" cy="68" r="4"/><circle cx="80" cy="60" r="4"/><circle cx="150" cy="50" r="4"/><circle cx="218" cy="38" r="4"/><circle cx="282" cy="28" r="4"/><circle cx="322" cy="20" r="5"/></g><text x="10" y="104" font-size="12" fill="#434C59" font-family="Reddit Sans,sans-serif">12 tháng</text><text x="332" y="104" font-size="12" fill="#434C59" font-family="Reddit Sans,sans-serif" text-anchor="end">18 tháng</text><text x="322" y="10" font-size="12" font-weight="700" fill="#0E6B57" font-family="Reddit Sans,sans-serif" text-anchor="end">10,2 kg</text></svg></div><p class="t-meta" style="margin-top:8px">Số liệu minh hoạ.</p></div></section><section class="scr" id="s-profile" data-route="profile" data-tab="profile" aria-labelledby="h-pr"><div class="head" style="padding-top:20px"><h1 class="t-title" id="h-pr" tabindex="-1">Hồ sơ</h1></div><div class="pad" style="margin-top:16px"><article class="card pcard"><div><h2 class="t-title">Mầm</h2><p class="t-body" style="margin-top:2px">18 tháng</p><p class="t-desc" style="margin-top:8px">Tháng này: từ ghép, bước đi và chơi theo lượt</p></div><span class="im s141"><img src="img/bloomy-hero.webp" alt=""></span></article></div><div class="pad sec"><h2 class="t-card">Người chăm</h2><div class="setrow"><span class="t-body">Bạn</span><span class="v t-body">Ba hoặc mẹ</span></div><div class="setrow"><span class="t-body">Người chăm thứ hai</span><span class="v t-body">Chưa thêm</span></div></div><div class="pad sec"><h2 class="t-card">Nhẹ nhàng</h2><div class="setrow"><span class="t-body">Một hoạt động mỗi ngày</span><span class="switch" role="img" aria-label="Đang bật"></span></div><div class="setrow"><span class="t-body">Nhắc nhẹ lúc</span><span class="v t-body">9:00 sáng</span></div></div><div class="pad sec"><h2 class="t-card">Dữ liệu</h2><div class="setrow"><span class="t-body">Riêng tư</span><span class="v t-body"><svg class="ic20" aria-hidden="true"><use href="#i-chev-r"/></svg></span></div><div class="setrow"><span class="t-body">Về bloomy</span><span class="v t-body"><svg class="ic20" aria-hidden="true"><use href="#i-chev-r"/></svg></span></div></div></section><nav class="tabbar" aria-label="Điều hướng chính"><a class="tab" href="#/home" data-tab="home"><svg class="ic" aria-hidden="true"><use href="#i-sun"/></svg><span class="t-tab">Hôm nay</span></a><a class="tab" href="#/milestones" data-tab="milestones"><svg class="ic" aria-hidden="true"><use href="#i-flag"/></svg><span class="t-tab">Cột mốc</span></a><a class="tab" href="#/growth" data-tab="growth"><svg class="ic" aria-hidden="true"><use href="#i-sprout"/></svg><span class="t-tab">Lớn lên</span></a><a class="tab" href="#/profile" data-tab="profile"><svg class="ic" aria-hidden="true"><use href="#i-user"/></svg><span class="t-tab">Hồ sơ</span></a></nav><div class="veil" id="veil"></div><div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-label="Tùy chọn cho hoạt động"><h2 class="t-card">Hôm nay</h2><button type="button" class="opt t-body" id="opt-short"><svg class="ic20" aria-hidden="true"><use href="#i-clock"/></svg>Chơi ngắn hơn, 5 phút</button><a class="opt t-body" href="#/swap" id="opt-swap"><svg class="ic20" aria-hidden="true"><use href="#i-blocks"/></svg>Đổi hoạt động</a><button type="button" class="opt t-body" id="opt-close">Đóng</button></div><div class="toast" id="toast" role="status" aria-live="polite"><span class="t-label"></span></div></div><script>
 (function(){
-  var IMG = {"bloomy-activity-language": "img/bloomy-activity-language.jpg", "bloomy-activity-motor": "img/bloomy-activity-motor.jpg", "bloomy-spot-sprout": "img/bloomy-spot-sprout.jpg", "bloomy-activity-play": "img/bloomy-activity-play.jpg", "bloomy-hero": "img/bloomy-hero.webp", "bloomy-activity-social": "img/bloomy-activity-social.jpg"};
-  function key(file){ return file.replace(/\.(jpg|png)$/, ""); }
-  function paint(el, file){
-    var k = key(file), url = IMG[k];
-    if (!el) return;
-    if (!url){ el.classList.remove("has-img"); el.style.backgroundImage = ""; return; }
-    el.classList.add("has-img");
-    if (k === "bloomy-spot-sprout") el.classList.add("contain");
-    el.style.backgroundImage = "url('" + url + "')";
-    el.setAttribute("aria-label", file.replace(/\.(jpg|png)$/, "").replace(/-/g, " "));
-  }
-  document.querySelectorAll(".imgph").forEach(function(el){
-    var f = el.querySelector(".ph-file");
-    var file = f ? f.textContent.trim() : "";
-    if (!file){
-      var cap = el.closest(".swap-row") && el.closest(".swap-row").querySelector(".caption");
-      if (cap) file = cap.textContent.split("·")[0].trim();
+  var ACT = {"play": {"dom": "play", "title": "Xếp, chờ, đổ", "img": "bloomy-activity-play.jpg", "alt": "Mầm xếp khối gỗ, một bàn tay đưa thêm khối", "pos": "50% 40%", "needs": "Bạn cần 4 đến 6 khối gỗ hoặc cốc xếp.", "steps": ["Xếp chậm hai khối, để Mầm nhìn tay bạn.", "Dừng tay chờ, để bé đánh đổ hoặc thêm một khối.", "Xếp lại cùng nhau, đếm to: một, hai."], "short": "Bỏ phần đếm. Xếp, chờ tay bé, đổ: ba tháp là cả một trò chơi.", "mem": "Một buổi xếp khối"}, "motor": {"dom": "motor", "title": "Đẩy xe, diễu hành", "img": "bloomy-activity-motor.jpg", "alt": "Mầm đẩy xe gỗ trong phòng, mẹ đi bên cạnh", "pos": "50% 50%", "needs": "Bạn cần một chiếc xe đẩy chắc và một vòng trống trong phòng.", "steps": ["Dọn một vòng phòng, đặt xe ở điểm xuất phát.", "Để Mầm tự đẩy, bạn đi bên cạnh và không dẫn đường.", "Dừng giữa đường, reo mừng việc đẩy chứ không phải tốc độ."], "short": "Một vòng thôi. Đẩy, dừng, reo mừng là cả một cuộc diễu hành.", "mem": "Vòng diễu hành đầu tiên"}, "lang": {"dom": "lang", "title": "Gọi tên, chờ, reo", "img": "bloomy-activity-language.jpg", "alt": "Mẹ và Mầm xem sách tranh trên ghế", "pos": "50% 50%", "needs": "Bạn cần một cuốn sách tranh quen, hình to và rõ.", "steps": ["Cho Mầm ngồi lòng, mở trang bé đã biết.", "Chỉ một hình, gọi tên thật chậm, chỉ một từ.", "Chờ bé thử, rồi reo mừng mọi câu trả lời."], "short": "Một trang thôi. Chỉ, gọi tên, chờ, reo, rồi khép sách khi còn vui.", "mem": "Từ đầu tiên bên trang sách"}, "social": {"dom": "social", "title": "Tiệc trà cho hai gấu", "img": "bloomy-activity-social.jpg", "alt": "Mầm và mẹ mở tiệc trà cho hai gấu bông", "pos": "50% 50%", "needs": "Bạn cần hai gấu bông, vài cái cốc nhỏ và một tấm chăn.", "steps": ["Đặt hai gấu lên chăn, cho Mầm một cái cốc.", "Rót cho một gấu, nói to đến lượt ai.", "Đưa cốc cho Mầm, chờ bé rót cho gấu còn lại."], "short": "Một lượt thôi. Rót cho một gấu, để Mầm rót cho gấu kia, nhấp trà, xong.", "mem": "Tiệc trà đầu tiên"}}, MS = [[1, "motor", "done", "Đi không cần vịn", "12 đến 15 tháng", "Mầm buông tay khỏi đồ đạc, tự bước qua phòng và ngồi xuống khi muốn. Loạng choạng vẫn là một phần của bước đi.", "05/08"], [2, "motor", "now", "Đá bóng khi đứng", "18 đến 22 tháng", "Đứng gần quả bóng, Mầm vung một chân đá và bóng lăn về phía trước. Bé có thể vịn ghế hoặc ngồi phịch xuống, cả hai đều là đang thử.", ""], [3, "lang", "done", "Nói được 6 từ", "15 đến 18 tháng", "Từ bật ra đúng lúc: bóng ở công viên, lên khi giơ tay, hết khi bát trống. Nghe chưa tròn vẫn tính.", "14/09"], [4, "lang", "now", "Ghép hai từ", "18 đến 24 tháng", "Hai từ đi thành cặp: thêm nước, ba đi, giày con. Lúc đầu cặp từ có thể dính vào nhau, và bé dùng đi dùng lại một cặp.", ""], [5, "play", "done", "Xếp tháp 3 khối", "15 đến 18 tháng", "Một khối, dừng, khối thứ hai, rồi khối thứ ba. Thường kèm một cái vỗ tay trước khi tháp đổ.", "12/10"], [6, "play", "now", "Xếp tháp 6 khối", "18 đến 22 tháng", "Tháp cao dần và lung lay. Mầm chậm tay ở những khối trên cùng và thở ra khi một khối đứng yên: đôi tay cẩn thận chính là cột mốc.", ""], [7, "social", "done", "Khoe đồ chơi", "14 đến 18 tháng", "Mầm mang đồ chơi qua phòng, giơ lên và nhìn mặt bạn. Bé không xin giúp, bé đang chia sẻ điều thú vị.", "30/09"], [8, "social", "later", "Chơi theo lượt", "20 đến 26 tháng", "Bóng lăn đến Mầm, bé lăn lại và chờ bóng quay về. Phần mới là chờ đến lượt mình, lúc có lúc không.", ""]], STATUS = {"now": "Đang diễn ra", "done": "Đã làm được", "later": "Sắp tới"}, DOMAIN = {"motor": ["Vận động", "d-motor", "foot"], "lang": ["Ngôn ngữ", "d-lang", "msg"], "play": ["Chơi", "d-play", "blocks"], "social": ["Xã hội", "d-social", "users"]};
+  var state = {act: "play", short: false, saved: {}, ms: {}, filter: "all", mem: null};
+  MS.forEach(function(m){ state.ms[m[0]] = m[2]; });
+  var $ = function(s, r){ return (r || document).querySelector(s); };
+  var $$ = function(s, r){ return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
+  var nb = function(s){ s = s.replace(/(\d+) (phút|khối|từ|tháng|kg|cm)(?![\wÀ-ỹ])/g, "$1\u00a0$2"); var i = s.lastIndexOf(" "); return i > 0 && s.length - i <= 9 ? s.slice(0, i) + "\u00a0" + s.slice(i + 1) : s; };
+  var svg = function(n, c){ return '<svg class="' + (c || "ic") + '" aria-hidden="true"><use href="#i-' + n + '"/></svg>'; };
+  var chip = function(k){ var d = DOMAIN[k]; return '<span class="chip t-label ' + d[1] + '">' + svg(d[2], "ic16") + d[0] + '</span>'; };
+  var mins = function(t){ return '<span class="tm t-label">' + svg("clock", "ic16") + nb(t) + '</span>'; };
+  var lastFocus = null, doneToday = "27/10";
+
+  function tl(){
+    var ol = $("#s-home .tl"); if (!ol || !ol.offsetParent) return;
+    $$(".tl-link", ol).forEach(function(e){ e.remove(); });
+    var dots = $$(".dot", ol), o = ol.getBoundingClientRect();
+    for (var i = 0; i < dots.length - 1; i++){
+      var a = dots[i].getBoundingClientRect(), b = dots[i + 1].getBoundingClientRect(), d = document.createElement("span");
+      d.className = "tl-link"; d.setAttribute("aria-hidden", "true");
+      d.style.cssText = "left:" + Math.round(a.left + a.width / 2 - o.left - 1) + "px;top:" + Math.round(a.bottom - o.top + 6) + "px;height:" + Math.round(b.top - a.bottom - 12) + "px";
+      ol.appendChild(d);
     }
-    if (file) paint(el, file);
+  }
+  function renderAct(just){
+    var a = ACT[state.act], t = state.short ? "5 phút" : "10 phút";
+    $("#act-pic").src = "img/" + a.img; $("#act-pic").alt = a.alt; $("#act-pic").style.objectPosition = a.pos;
+    $("#h-act").innerHTML = nb(a.title); $("#act-needs").textContent = nb(a.needs);
+    $("#act-meta").innerHTML = chip(a.dom) + mins(t);
+    $("#act-steps").innerHTML = a.steps.map(function(s, i){ return '<li class="card"><span class="n">' + (i + 1) + '</span><p class="t-body">' + nb(s) + '</p></li>'; }).join("");
+    $("#act-steps").hidden = state.short; $("#act-short").hidden = !state.short; $("#act-short").textContent = nb(a.short);
+    $("#act-shorter-t").textContent = state.short ? "Xem đủ các bước" : "Chơi ngắn hơn";
+    $("#act-shorter use").setAttribute("href", state.short ? "#i-list" : "#i-clock");
+    var done = !!state.saved[state.act], b = $("#act-done");
+    b.disabled = done; b.innerHTML = done ? svg("check", "ic20" + (just ? " pop" : "")) + "Đã lưu vào Lớn lên" : "Xong, lưu thành kỷ niệm";
+    $("#home-title a").innerHTML = nb(a.title); $("#home-thumb").src = "img/" + a.img; $("#home-meta").innerHTML = chip(a.dom) + mins(t);
+  }
+  function renderMs(){
+    var html = "", f = function(m){ return state.filter === "all" || m[1] === state.filter; };
+    var now = MS.filter(function(m){ return state.ms[m[0]] === "now" && f(m); });
+    var key = function(m){ var p = (m[6] || "").split("/"); return (+p[1]) * 100 + (+p[0]); };
+    var done = MS.filter(function(m){ return state.ms[m[0]] === "done" && f(m); }).sort(function(a, b){ return key(b) - key(a); });
+    var later = MS.filter(function(m){ return state.ms[m[0]] === "later" && f(m); });
+    if (now.length) html += '<h2 class="grp t-card">' + STATUS.now + '</h2><ul class="rows">' + now.map(function(m){
+      return '<li><a class="card row" href="#/milestone/' + m[0] + '"><span><span class="t-cardsm" style="display:block">' + nb(m[3]) + '</span><span class="meta-row">' + chip(m[1]) + '</span></span><span class="chev">' + svg("chev-r", "ic20") + '</span></a></li>'; }).join("") + '</ul>';
+    var flat = function(m, kind){ return '<li><a class="flatrow" href="#/milestone/' + m[0] + '"><span class="ck' + (kind === "later" ? " hollow" : "") + '">' + svg(kind === "done" ? "check-c" : "circle", "ic20") + '</span><span class="t-body">' + nb(m[3]) + '</span><span class="d t-label">' + (kind === "done" ? (m[6] || doneToday) : m[4].replace(/(\d+) (tháng)/, "$1\u00a0$2")) + '</span></a></li>'; };
+    if (done.length) html += '<h2 class="grp t-card">' + STATUS.done + '</h2><ul class="flat">' + done.map(function(m){ return flat(m, "done"); }).join("") + '</ul>';
+    if (later.length) html += '<h2 class="grp t-card">' + STATUS.later + '</h2><ul class="flat">' + later.map(function(m){ return flat(m, "later"); }).join("") + '</ul>';
+    $("#ms-list").innerHTML = html || '<p class="quiet t-body">Chưa có cột mốc nào trong nhóm này.</p>';
+  }
+  function bar(m, st, pop){
+    var lo = 12, hi = 28, X = function(v){ return 9 + (v - lo) / (hi - lo) * 324; }, r = m[4].match(/(\d+) đến (\d+)/), a = +r[1], b = +r[2], me = 18, ok = st === "done", cy = 34, F = ' font-family="Reddit Sans,sans-serif"';
+    var t = "";
+    [12, 16, 20, 24, 28].forEach(function(v){ t += v === 28 ? '<text x="342" y="60" font-size="12" fill="#434C59"' + F + ' text-anchor="end">28 tháng</text>' : '<text x="' + X(v) + '" y="60" font-size="12" fill="#434C59"' + F + ' text-anchor="middle">' + v + '</text>'; });
+    var mark = ok ? '<g class="' + (pop ? "pop" : "") + '" style="transform-origin:' + X(me) + 'px ' + cy + 'px"><circle cx="' + X(me) + '" cy="' + cy + '" r="12" fill="#0E6B57"/><path d="M' + (X(me) - 5.5) + ' ' + (cy + 0.5) + 'l3.8 3.8 7.2-7.6" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></g>'
+                   : '<line x1="' + X(me) + '" y1="' + (cy - 15) + '" x2="' + X(me) + '" y2="' + (cy + 15) + '" stroke="#0E6B57" stroke-width="2" stroke-linecap="round"/><circle cx="' + X(me) + '" cy="' + cy + '" r="6" fill="#0E6B57"/>';
+    $("#m-bar").innerHTML = '<line x1="9" y1="' + cy + '" x2="333" y2="' + cy + '" stroke="#E4E7DD" stroke-width="4" stroke-linecap="round"/>' +
+      '<line x1="' + X(a) + '" y1="' + cy + '" x2="' + X(b) + '" y2="' + cy + '" stroke="#7FD3B8" stroke-width="10" stroke-linecap="round"/>' + mark +
+      '<text x="' + X(me) + '" y="11" font-size="12" font-weight="700" fill="#0E6B57"' + F + ' text-anchor="middle">Mầm, 18 tháng</text>' + t;
+    $("#m-bar").setAttribute("aria-label", "Mầm 18 tháng. Khoảng thường thấy từ " + a + " đến " + b + " tháng" + (ok ? ". Đã làm được." : "."));
+  }
+  function renderMilestone(id, pop){
+    var m = MS.filter(function(x){ return String(x[0]) === String(id); })[0] || MS[1], st = state.ms[m[0]];
+    $("#m-meta").innerHTML = chip(m[1]) + '<span class="tm t-label">' + svg(st === "done" ? "check" : st === "now" ? "sprout" : "clock", "ic16") + STATUS[st] + '</span>';
+    $("#h-m").innerHTML = nb(m[3]); $("#m-range").textContent = "Thường thấy khoảng " + m[4].replace(/(\d+) (tháng)/, "$1\u00a0$2");
+    $("#m-looks").textContent = nb(m[5]); bar(m, st, pop);
+    var tb = $("#m-try"), a2 = ACT[m[1]], show = st !== "done"; tb.hidden = $("#m-try-h").hidden = !show;
+    if (show){ tb.dataset.act = m[1]; tb.innerHTML = '<span class="tx"><span class="t-cardsm" style="display:block">' + nb(a2.title) + '</span><span class="meta-row" style="margin-top:8px">' + chip(a2.dom) + '</span></span><span class="im s88"><img src="img/' + a2.img + '" alt=""></span>'; }
+    var b = $("#m-saw"); b.dataset.id = m[0]; b.disabled = st === "done";
+    b.innerHTML = st === "done" ? svg("check", "ic20") + "Đã ghi nhận" : "Mầm đã làm được";
+  }
+  function addMemory(){
+    var a = ACT[state.act]; if (document.getElementById("mem-" + state.act)) return;
+    var el = document.createElement("article"); el.className = "card tcard memcard"; el.id = "mem-" + state.act;
+    el.innerHTML = '<div class="tx"><p class="t-meta eyebrow">Hôm nay</p><h3 class="t-card">' + nb(a.mem) + '</h3><div class="meta-col">' + chip(a.dom) + '</div></div>' +
+      '<span class="im s141"><img src="img/' + a.img + '" alt=""></span>';
+    var w = $("#week"); $("#week-empty").hidden = true; w.insertBefore(el, w.firstChild); $("#add-more").hidden = false;
+  }
+  function toast(t){ var e = $("#toast"); e.querySelector(".t-label").textContent = t; e.classList.add("on"); clearTimeout(toast.t); toast.t = setTimeout(function(){ e.classList.remove("on"); }, 2600); }
+  function sheet(on){
+    $("#veil").classList.toggle("on", on); $("#sheet").classList.toggle("on", on);
+    if (on){ lastFocus = document.activeElement; $("#opt-short").focus(); } else if (lastFocus){ lastFocus.focus(); }
+  }
+
+  function route(){
+    var h = location.hash.replace(/^#\/?/, "") || "home", p = h.split("/"), r = p[0];
+    if (["home","activity","swap","milestones","milestone","growth","profile"].indexOf(r) < 0) r = "home";
+    sheet(false); $("#toast").classList.remove("on");
+    $$(".scr").forEach(function(s){ s.classList.toggle("on", s.dataset.route === r); });
+    var cur = $(".scr.on"); var notab = cur.dataset.notab === "1";
+    document.body.classList.toggle("notab", notab);
+    $$(".tab").forEach(function(t){ var on = t.dataset.tab === (cur.dataset.tab || ""); if (on) t.setAttribute("aria-current", "page"); else t.removeAttribute("aria-current"); });
+    $("#act-cta").hidden = r !== "activity"; $("#m-cta").hidden = r !== "milestone";
+    if (r === "activity") renderAct(); if (r === "milestones") renderMs(); if (r === "milestone") renderMilestone(p[1] || 2);
+    document.title = (cur.querySelector("h1") ? cur.querySelector("h1").textContent.replace(/\u00a0/g, " ") : "Bloomy") + " | Bloomy";
+    window.scrollTo(0, 0); if (r === "home") tl();
+    var h1 = cur.querySelector("h1"); if (h1) { h1.focus({preventScroll: true}); }
+  }
+  window.addEventListener("hashchange", route); window.addEventListener("resize", tl);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(tl);
+  document.addEventListener("click", function(e){
+    var t = e.target.closest("button, a"); if (!t) return;
+    if (t.id === "more-btn") sheet(true);
+    else if (t.id === "veil" || t.id === "opt-close") sheet(false);
+    else if (t.id === "opt-short"){ state.short = true; sheet(false); location.hash = "#/activity"; renderAct(); }
+    else if (t.id === "opt-swap") sheet(false);
+    else if (t.id === "act-shorter"){ state.short = !state.short; renderAct(); }
+    else if (t.id === "act-done"){ state.saved[state.act] = true; addMemory(); renderAct(true); }
+    else if (t.id === "m-saw"){ var id = +t.dataset.id; state.ms[id] = "done"; MS.forEach(function(m){ if (m[0] === id) m[6] = doneToday; }); renderMilestone(id, true); renderMs(); toast("Cột mốc chuyển sang Đã làm được."); }
+    else if (t.id === "add-mem" || t.id === "add-more") toast("Bản demo chưa mở biểu mẫu kỷ niệm.");
+    else if (t.dataset.act){ state.act = t.dataset.act; state.short = false; location.hash = "#/activity"; }
+    else if (t.dataset.f){ state.filter = t.dataset.f; $$(".fchip").forEach(function(c){ var on = c === t; c.classList.toggle("on", on); c.setAttribute("aria-pressed", on); }); renderMs(); }
   });
-  document.querySelectorAll(".swap-row .caption").forEach(function(c){
-    var file = c.textContent.split("·")[0].trim();
-    if (IMG[key(file)]) c.style.display = "none";
-  });
-  var hf = document.getElementById("act-hero-file");
-  if (hf) new MutationObserver(function(){ paint(document.getElementById("act-hero"), hf.textContent.trim()); })
-    .observe(hf, {childList:true, characterData:true, subtree:true});
+  document.addEventListener("keydown", function(e){ if (e.key === "Escape" && $("#sheet").classList.contains("on")) sheet(false); });
+  renderAct(); route();
 })();
-</script>
-</body>
-</html>
+</script></body></html>
