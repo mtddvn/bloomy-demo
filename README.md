@@ -1,6 +1,6 @@
 # Bloomy, demo giao diện
 
-Bản demo tĩnh một tệp (v0.8.0), mười ba màn, bốn tab, tiếng Việt. Không có máy chủ, không lưu dữ liệu: mọi trạng thái (đổi bé, thêm hồ sơ về bé, đổi hoạt động, lưu kỷ niệm, đánh dấu cột mốc, chuỗi ngày, trình phát) chỉ nằm trong bộ nhớ trang và mất khi tải lại. Mọi số liệu về bé, chuỗi ngày, radar và bài Academy là SỐ MẪU minh hoạ, không phải dữ liệu thật.
+Bản demo tĩnh một tệp (v0.8.3), mười ba màn, bốn tab, tiếng Việt. Không có máy chủ, không lưu dữ liệu: mọi trạng thái (đổi bé, thêm hồ sơ về bé, đổi hoạt động, lưu kỷ niệm, đánh dấu cột mốc, chuỗi ngày, trình phát) chỉ nằm trong bộ nhớ trang và mất khi tải lại. Mọi số liệu về bé, chuỗi ngày, radar và bài Academy là SỐ MẪU minh hoạ, không phải dữ liệu thật.
 
 ## Mở thử
 
@@ -12,7 +12,7 @@ Mở link KHÔNG kèm đường dẫn băm thì vào Splash như mở app lần 
 
 ## Bốn tab
 
-Hôm nay, Phát triển, Academy, Hồ sơ. Phát triển gộp Cột mốc (`#/milestones`), Năng lực (`#/skills`, radar sáu miền) và Lớn lên (`#/growth`, số đo và kỷ niệm), chuyển bằng điều khiển phân đoạn ba ô ở đầu màn. Màn Năng lực có bản tên miền ALL CAPS ở `#/skills/a` để so sánh với bản chữ thường ở `#/skills`.
+Hôm nay, Phát triển, Academy, Hồ sơ. Phát triển gộp Cột mốc (`#/milestones`), Năng lực (`#/skills`, radar sáu miền) và Lớn lên (`#/growth`, số đo và kỷ niệm), chuyển bằng điều khiển phân đoạn ba ô ở đầu màn. Màn Năng lực: radar và dòng chú thích nằm thẳng trên nền trang; bên dưới là một card chứa sáu dòng miền (có mũi nhọn nhỏ ở mép trên chĩa lên biểu đồ; dòng chú thích nét nằm trên radar) và khối chú thích ba mức ở đáy card. Bản tên miền chữ thường để so sánh ở `#/skills/a`.
 
 ## Thay ảnh minh hoạ: chỉ đổi tệp
 
